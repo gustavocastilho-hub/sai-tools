@@ -9,25 +9,21 @@
     body { font-family: system-ui, sans-serif; background: #f0f2f5; height: 100vh; display: flex; flex-direction: column; }
     header { background: #1e1b4b; color: white; padding: 14px 20px; display: flex; align-items: center; gap: 16px; flex-shrink: 0; }
     header h1 { font-size: 16px; font-weight: 600; flex: 1; }
-    header button { background: #4f46e5; color: white; border: none; border-radius: 6px; padding: 7px 14px; font-size: 13px; cursor: pointer; }
-    header button:hover { background: #4338ca; }
     .layout { display: flex; flex: 1; overflow: hidden; }
     .panel-clients { width: 200px; background: #1e1b4b; color: white; display: flex; flex-direction: column; flex-shrink: 0; }
-    .pc-title { padding: 12px 14px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: #a5b4fc; border-bottom: 1px solid #312e81; }
-    .client-item { padding: 10px 14px; cursor: pointer; font-size: 13px; border-bottom: 1px solid #312e81; }
+    .panel-clients .panel-title { padding: 12px 14px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: #a5b4fc; border-bottom: 1px solid #312e81; }
+    .client-item { padding: 10px 14px; cursor: pointer; font-size: 13px; border-bottom: 1px solid #312e81; transition: background .12s; }
     .client-item:hover { background: #312e81; }
     .client-item.active { background: #4f46e5; }
-    .client-name { font-weight: 500; }
-    .client-url { font-size: 11px; color: #a5b4fc; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .add-client { padding: 10px 14px; cursor: pointer; font-size: 13px; color: #a5b4fc; margin-top: auto; border-top: 1px solid #312e81; }
-    .add-client:hover { color: white; }
+    .client-item .client-name { font-weight: 500; }
+    .client-item .client-url { font-size: 11px; color: #a5b4fc; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .panel-leads { width: 240px; background: white; border-right: 1px solid #e5e7eb; display: flex; flex-direction: column; flex-shrink: 0; }
     .panel-title { padding: 12px 14px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: #6b7280; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; justify-content: space-between; }
     .search-box { padding: 8px 10px; border-bottom: 1px solid #e5e7eb; }
     .search-box input { width: 100%; border: 1px solid #e5e7eb; border-radius: 6px; padding: 6px 10px; font-size: 13px; outline: none; }
     .search-box input:focus { border-color: #4f46e5; }
     .leads-list { overflow-y: auto; flex: 1; }
-    .lead-item { padding: 10px 14px; cursor: pointer; border-bottom: 1px solid #f3f4f6; }
+    .lead-item { padding: 10px 14px; cursor: pointer; border-bottom: 1px solid #f3f4f6; transition: background .1s; }
     .lead-item:hover { background: #f9fafb; }
     .lead-item.active { background: #ede9fe; }
     .lead-name { font-size: 14px; font-weight: 500; color: #111; }
@@ -53,29 +49,14 @@
     .msg-wrapper.right { align-items: flex-end; }
     .empty { flex: 1; display: flex; align-items: center; justify-content: center; color: #9ca3af; font-size: 14px; }
     .loading { color: #9ca3af; font-size: 13px; padding: 20px; text-align: center; }
-    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 100; align-items: center; justify-content: center; }
-    .modal-overlay.open { display: flex; }
-    .modal { background: white; border-radius: 12px; padding: 24px; width: 380px; box-shadow: 0 8px 32px rgba(0,0,0,.15); }
-    .modal h2 { font-size: 16px; margin-bottom: 16px; }
-    .modal label { display: block; font-size: 13px; font-weight: 500; color: #555; margin-bottom: 5px; }
-    .modal input { width: 100%; border: 1px solid #ddd; border-radius: 7px; padding: 9px 11px; font-size: 14px; outline: none; margin-bottom: 14px; }
-    .modal input:focus { border-color: #4f46e5; }
-    .modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
-    .modal-actions button { padding: 8px 16px; border-radius: 7px; font-size: 14px; cursor: pointer; border: none; }
-    .btn-cancel { background: #f3f4f6; color: #374151; }
-    .btn-save { background: #4f46e5; color: white; }
   </style>
 </head>
 <body>
-<header>
-  <h1>Logs de Conversa</h1>
-  <button onclick="openModal()">+ Adicionar cliente</button>
-</header>
+<header><h1>Logs de Conversa</h1></header>
 <div class="layout">
   <div class="panel-clients">
-    <div class="pc-title">Clientes</div>
-    <div id="clientList"></div>
-    <div class="add-client" onclick="openModal()">+ Adicionar cliente</div>
+    <div class="panel-title">Clientes</div>
+    <div id="clientList"><div style="padding:12px 14px;font-size:12px;color:#a5b4fc;">Carregando...</div></div>
   </div>
   <div class="panel-leads">
     <div class="panel-title">Leads <span id="leadsCount"></span></div>
@@ -84,37 +65,31 @@
   </div>
   <div class="panel-chat" id="panelChat"><div class="empty">Selecione um lead</div></div>
 </div>
-<div class="modal-overlay" id="modalOverlay">
-  <div class="modal">
-    <h2>Adicionar cliente</h2>
-    <label>Nome do cliente</label>
-    <input type="text" id="modalName" placeholder="Ex: Mya Disparo">
-    <label>URL base do webhook</label>
-    <input type="url" id="modalUrl" placeholder="https://webhook.exemplo.com.br/mya-disparo">
-    <div class="modal-actions">
-      <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
-      <button class="btn-save" onclick="saveClient()">Salvar</button>
-    </div>
-  </div>
-</div>
 <script>
-  let clients = JSON.parse(localStorage.getItem('sai_clients') || '[]');
+  let clients = [];
   let allLeads = [];
   let selectedClient = null;
   let selectedPhone = null;
 
-  function saveClients() { localStorage.setItem('sai_clients', JSON.stringify(clients)); }
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-  function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  async function loadClients() {
+    try {
+      const res = await fetch('./clients.json?_=' + Date.now());
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      clients = await res.json();
+      renderClients();
+      if (clients.length) selectClient(0);
+    } catch(e) {
+      document.getElementById('clientList').innerHTML =
+        '<div style="padding:12px 14px;font-size:12px;color:#f87171;">Erro: ' + esc(e.message) + '</div>';
+    }
+  }
 
   function renderClients() {
     const el = document.getElementById('clientList');
-    if (!clients.length) {
-      el.innerHTML = '<div style="padding:12px 14px;font-size:12px;color:#a5b4fc;">Nenhum cliente ainda</div>';
-      return;
-    }
-    el.innerHTML = clients.map((c, i) =>
-      '<div class="client-item' + (selectedClient === i ? ' active' : '') + '" onclick="selectClient(' + i + ')">' +
+    el.innerHTML = clients.map((c,i) =>
+      '<div class="client-item' + (selectedClient===i?' active':'') + '" onclick="selectClient('+i+')">' +
       '<div class="client-name">' + esc(c.name) + '</div>' +
       '<div class="client-url">' + esc(c.url) + '</div></div>'
     ).join('');
@@ -141,15 +116,14 @@
     const el = document.getElementById('leadsList');
     document.getElementById('leadsCount').textContent = leads.length;
     if (!leads.length) { el.innerHTML = '<div class="empty">Nenhum lead</div>'; return; }
-    el.innerHTML = leads.map((l, idx) => {
+    el.innerHTML = leads.map((l,idx) => {
       const name = l.nome || l.phone;
       const badges = [];
       if (l.nicho) badges.push('<span class="badge badge-nicho">' + esc(l.nicho) + '</span>');
       if (l.event_id) badges.push('<span class="badge badge-agendado">Agendado</span>');
       else if (l.has_followup) badges.push('<span class="badge badge-followup">Follow-up</span>');
       badges.push('<span class="badge badge-msgs">' + l.msg_count + ' msgs</span>');
-      return '<div class="lead-item' + (selectedPhone === l.phone ? ' active' : '') +
-        '" onclick="selectLead(' + idx + ')">' +
+      return '<div class="lead-item' + (selectedPhone===l.phone?' active':'') + '" onclick="selectLead('+idx+')">' +
         '<div class="lead-name">' + esc(name) + '</div>' +
         '<div class="lead-phone">' + esc(l.phone) + '</div>' +
         '<div class="lead-meta">' + badges.join('') + '</div></div>';
@@ -159,8 +133,7 @@
   function getFilteredLeads() {
     const q = document.getElementById('searchInput').value.toLowerCase();
     return !q ? allLeads : allLeads.filter(l =>
-      (l.nome||'').toLowerCase().includes(q) || l.phone.includes(q) || (l.nicho||'').toLowerCase().includes(q)
-    );
+      (l.nome||'').toLowerCase().includes(q) || l.phone.includes(q) || (l.nicho||'').toLowerCase().includes(q));
   }
 
   function filterLeads() { renderLeads(getFilteredLeads()); }
@@ -172,11 +145,11 @@
     renderLeads(filtered);
     const chat = document.getElementById('panelChat');
     const name = lead.nome || lead.phone;
-    const tags = [lead.nicho, lead.event_id ? 'Reuniao agendada' : (lead.has_followup ? 'Follow-up ativo' : '')].filter(Boolean).join(' · ');
+    const tags = [lead.nicho, lead.event_id ? 'Reuniao agendada' : (lead.has_followup ? 'Follow-up ativo' : '')].filter(Boolean).join(' . ');
     chat.innerHTML =
       '<div class="chat-header">' +
         '<div class="lead-title">' + esc(name) + '</div>' +
-        '<div class="lead-details">' + esc(lead.phone) + (tags ? ' · ' + esc(tags) : '') + '</div>' +
+        '<div class="lead-details">' + esc(lead.phone) + (tags?' . '+esc(tags):'') + '</div>' +
         (lead.resumo ? '<div class="resumo-box"><strong>Resumo:</strong> ' + esc(lead.resumo) + '</div>' : '') +
       '</div>' +
       '<div class="messages" id="messages"><div class="loading">Carregando...</div></div>';
@@ -188,9 +161,9 @@
       if (!msgs.length) { container.innerHTML = '<div class="loading">Sem mensagens</div>'; return; }
       container.innerHTML = msgs.map(m => {
         const isAi = m.role === 'ai';
-        return '<div class="msg-wrapper' + (isAi ? ' right' : '') + '">' +
-          '<div class="msg-label' + (isAi ? ' right' : '') + '">' + (isAi ? 'Mya' : esc(name)) + '</div>' +
-          '<div class="msg ' + (isAi ? 'ai' : 'human') + '">' + esc(m.content) + '</div></div>';
+        return '<div class="msg-wrapper' + (isAi?' right':'') + '">' +
+          '<div class="msg-label' + (isAi?' right':'') + '">' + (isAi ? esc(clients[selectedClient].name) : esc(name)) + '</div>' +
+          '<div class="msg ' + (isAi?'ai':'human') + '">' + esc(m.content) + '</div></div>';
       }).join('');
       container.scrollTop = container.scrollHeight;
     } catch(e) {
@@ -198,23 +171,7 @@
     }
   }
 
-  function openModal() {
-    document.getElementById('modalName').value = '';
-    document.getElementById('modalUrl').value = '';
-    document.getElementById('modalOverlay').classList.add('open');
-    setTimeout(() => document.getElementById('modalName').focus(), 100);
-  }
-  function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); }
-  function saveClient() {
-    const name = document.getElementById('modalName').value.trim();
-    const url = document.getElementById('modalUrl').value.trim().replace(/\/$/, '');
-    if (!name || !url) return;
-    clients.push({name, url}); saveClients(); renderClients(); closeModal();
-  }
-  document.getElementById('modalOverlay').addEventListener('click', e => {
-    if (e.target === e.currentTarget) closeModal();
-  });
-  renderClients();
+  loadClients();
 </script>
 </body>
 </html>
