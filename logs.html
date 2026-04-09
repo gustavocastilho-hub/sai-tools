@@ -17,9 +17,13 @@
     .client-item.active { background: #4f46e5; }
     .client-item .client-name { font-weight: 500; }
     .client-item .client-url { font-size: 11px; color: #a5b4fc; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .panel-leads { width: 240px; background: white; border-right: 1px solid #e5e7eb; display: flex; flex-direction: column; flex-shrink: 0; }
+    .panel-leads { width: 260px; background: white; border-right: 1px solid #e5e7eb; display: flex; flex-direction: column; flex-shrink: 0; }
     .panel-title { padding: 12px 14px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: #6b7280; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; justify-content: space-between; }
-    .search-box { padding: 8px 10px; border-bottom: 1px solid #e5e7eb; }
+    .tab-bar { display: flex; border-bottom: 1px solid #e5e7eb; flex-shrink: 0; }
+    .tab { flex: 1; padding: 9px; text-align: center; font-size: 12px; font-weight: 500; cursor: pointer; color: #6b7280; border-bottom: 2px solid transparent; transition: all .12s; }
+    .tab:hover { color: #4f46e5; }
+    .tab.active { color: #4f46e5; border-bottom-color: #4f46e5; }
+    .search-box { padding: 8px 10px; border-bottom: 1px solid #e5e7eb; flex-shrink: 0; }
     .search-box input { width: 100%; border: 1px solid #e5e7eb; border-radius: 6px; padding: 6px 10px; font-size: 13px; outline: none; }
     .search-box input:focus { border-color: #4f46e5; }
     .leads-list { overflow-y: auto; flex: 1; }
@@ -47,6 +51,22 @@
     .msg-label.right { text-align: right; }
     .msg-wrapper { display: flex; flex-direction: column; }
     .msg-wrapper.right { align-items: flex-end; }
+    /* LOGS VIEW */
+    .logs-panel { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 0; background: #f8f9fa; }
+    .log-block { background: white; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 12px; overflow: hidden; }
+    .log-block-header { padding: 8px 12px; background: #f3f4f6; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; gap: 8px; }
+    .log-phone { font-size: 12px; font-weight: 600; color: #374151; }
+    .log-time { font-size: 11px; color: #9ca3af; margin-left: auto; }
+    .log-lines { padding: 10px 12px; font-family: monospace; font-size: 12px; line-height: 1.7; color: #374151; white-space: pre-wrap; word-break: break-all; }
+    .log-line-token { color: #7c3aed; }
+    .log-line-tool { color: #0369a1; }
+    .log-line-crm { color: #065f46; }
+    .log-line-auto { color: #92400e; }
+    .log-line-err { color: #991b1b; }
+    .log-line-followup { color: #1d4ed8; }
+    .log-search { padding: 8px 10px; border-bottom: 1px solid #e5e7eb; flex-shrink: 0; }
+    .log-search input { width: 100%; border: 1px solid #e5e7eb; border-radius: 6px; padding: 6px 10px; font-size: 13px; outline: none; }
+    .log-search input:focus { border-color: #4f46e5; }
     .empty { flex: 1; display: flex; align-items: center; justify-content: center; color: #9ca3af; font-size: 14px; }
     .loading { color: #9ca3af; font-size: 13px; padding: 20px; text-align: center; }
   </style>
@@ -58,82 +78,165 @@
     <div class="panel-title">Clientes</div>
     <div id="clientList"><div style="padding:12px 14px;font-size:12px;color:#a5b4fc;">Carregando...</div></div>
   </div>
-  <div class="panel-leads">
-    <div class="panel-title">Leads <span id="leadsCount"></span></div>
-    <div class="search-box"><input type="text" id="searchInput" placeholder="Buscar nome ou numero..." oninput="filterLeads()"></div>
-    <div class="leads-list" id="leadsList"><div class="empty">Selecione um cliente</div></div>
+  <div class="panel-leads" id="panelLeft">
+    <div class="tab-bar">
+      <div class="tab active" id="tabLeads" onclick="switchTab('leads')">Leads</div>
+      <div class="tab" id="tabLogs" onclick="switchTab('logs')">Execucoes</div>
+    </div>
+    <!-- LEADS -->
+    <div id="leadsView" style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
+      <div class="panel-title" style="border-top:none;">Leads <span id="leadsCount"></span></div>
+      <div class="search-box"><input type="text" id="searchInput" placeholder="Buscar nome ou numero..." oninput="filterLeads()"></div>
+      <div class="leads-list" id="leadsList"><div class="empty">Selecione um cliente</div></div>
+    </div>
+    <!-- LOGS LIST -->
+    <div id="logsView" style="display:none;flex-direction:column;flex:1;overflow:hidden;">
+      <div class="panel-title" style="border-top:none;">Execucoes <span id="logsCount"></span></div>
+      <div class="log-search"><input type="text" id="logSearchInput" placeholder="Filtrar por numero..." oninput="filterLogBlocks()"></div>
+      <div class="leads-list" id="logBlockList"><div class="empty">Selecione um cliente</div></div>
+    </div>
   </div>
   <div class="panel-chat" id="panelChat"><div class="empty">Selecione um lead</div></div>
 </div>
 <script>
   let clients = [];
   let allLeads = [];
+  let allLogBlocks = [];
   let selectedClient = null;
   let selectedPhone = null;
+  let currentTab = "leads";
 
-  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function esc(s) { return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+  function switchTab(tab) {
+    currentTab = tab;
+    document.getElementById("tabLeads").className = "tab" + (tab==="leads"?" active":"");
+    document.getElementById("tabLogs").className = "tab" + (tab==="logs"?" active":"");
+    document.getElementById("leadsView").style.display = tab==="leads"?"flex":"none";
+    document.getElementById("logsView").style.display = tab==="logs"?"flex":"none";
+    if (tab==="logs" && selectedClient!==null && !allLogBlocks.length) loadLogs();
+    if (tab==="leads") document.getElementById("panelChat").innerHTML = selectedPhone
+      ? "" : '<div class="empty">Selecione um lead</div>';
+  }
 
   async function loadClients() {
     try {
-      const res = await fetch('./clients.json?_=' + Date.now());
-      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const res = await fetch("./clients.json?_=" + Date.now());
+      if (!res.ok) throw new Error("HTTP " + res.status);
       clients = await res.json();
       renderClients();
       if (clients.length) selectClient(0);
     } catch(e) {
-      document.getElementById('clientList').innerHTML =
-        '<div style="padding:12px 14px;font-size:12px;color:#f87171;">Erro: ' + esc(e.message) + '</div>';
+      document.getElementById("clientList").innerHTML =
+        '<div style="padding:12px 14px;font-size:12px;color:#f87171;">Erro: ' + esc(e.message) + "</div>";
     }
   }
 
   function renderClients() {
-    const el = document.getElementById('clientList');
+    const el = document.getElementById("clientList");
     el.innerHTML = clients.map((c,i) =>
-      '<div class="client-item' + (selectedClient===i?' active':'') + '" onclick="selectClient('+i+')">' +
-      '<div class="client-name">' + esc(c.name) + '</div>' +
-      '<div class="client-url">' + esc(c.url) + '</div></div>'
-    ).join('');
+      '<div class="client-item' + (selectedClient===i?" active":"") + '" onclick="selectClient(' + i + ')">'  +
+      '<div class="client-name">' + esc(c.name) + "</div>" +
+      '<div class="client-url">' + esc(c.url) + "</div></div>"
+    ).join("");
   }
 
   async function selectClient(i) {
-    selectedClient = i; selectedPhone = null;
+    selectedClient = i; selectedPhone = null; allLogBlocks = [];
     renderClients();
-    document.getElementById('panelChat').innerHTML = '<div class="empty">Selecione um lead</div>';
-    document.getElementById('leadsList').innerHTML = '<div class="loading">Carregando leads...</div>';
-    document.getElementById('leadsCount').textContent = '';
-    document.getElementById('searchInput').value = '';
+    document.getElementById("panelChat").innerHTML = '<div class="empty">Selecione um lead</div>';
+    document.getElementById("leadsList").innerHTML = '<div class="loading">Carregando leads...</div>';
+    document.getElementById("logBlockList").innerHTML = '<div class="loading">Carregando...</div>';
+    document.getElementById("leadsCount").textContent = "";
+    document.getElementById("logsCount").textContent = "";
+    document.getElementById("searchInput").value = "";
+    document.getElementById("logSearchInput").value = "";
     try {
-      const res = await fetch(clients[i].url + '/logs/leads');
-      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const res = await fetch(clients[i].url + "/logs/leads");
+      if (!res.ok) throw new Error("HTTP " + res.status);
       allLeads = await res.json();
       renderLeads(allLeads);
     } catch(e) {
-      document.getElementById('leadsList').innerHTML = '<div class="loading" style="color:#ef4444">Erro: ' + esc(e.message) + '</div>';
+      document.getElementById("leadsList").innerHTML = '<div class="loading" style="color:#ef4444">Erro: ' + esc(e.message) + "</div>";
+    }
+    if (currentTab === "logs") loadLogs();
+  }
+
+  async function loadLogs() {
+    document.getElementById("logBlockList").innerHTML = '<div class="loading">Carregando logs...</div>';
+    try {
+      const res = await fetch(clients[selectedClient].url + "/logs/events?limit=100");
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      allLogBlocks = await res.json();
+      renderLogBlocks(allLogBlocks);
+    } catch(e) {
+      document.getElementById("logBlockList").innerHTML = '<div class="loading" style="color:#ef4444">Erro: ' + esc(e.message) + "</div>";
     }
   }
 
+  function lineClass(line) {
+    if (line.startsWith("[TOKENS]")) return "log-line-token";
+    if (line.startsWith("[TOOL")) return "log-line-tool";
+    if (line.startsWith("[CRM]")) return "log-line-crm";
+    if (line.startsWith("[AUTO]")) return "log-line-auto";
+    if (line.startsWith("[FOLLOWUP]")) return "log-line-followup";
+    if (line.toLowerCase().includes("erro") || line.toLowerCase().includes("error") || line.toLowerCase().includes("falh")) return "log-line-err";
+    return "";
+  }
+
+  function fmtTime(ts) {
+    const d = new Date(ts * 1000);
+    return d.toLocaleDateString("pt-BR") + " " + d.toLocaleTimeString("pt-BR", {hour:"2-digit",minute:"2-digit",second:"2-digit"});
+  }
+
+  function renderLogBlocks(blocks) {
+    const el = document.getElementById("logBlockList");
+    document.getElementById("logsCount").textContent = blocks.length;
+    if (!blocks.length) { el.innerHTML = '<div class="empty">Nenhum log</div>'; return; }
+    el.innerHTML = blocks.map(b => {
+      const linesHtml = (b.lines||[]).map(line =>
+        '<div class="' + lineClass(line) + '">' + esc(line) + "</div>"
+      ).join("");
+      return '<div class="log-block">'  +
+        '<div class="log-block-header">'  +
+          '<span class="log-phone">' + esc(b.phone||"?") + "</span>" +
+          '<span class="log-time">' + fmtTime(b.ts) + "</span>" +
+        "</div>" +
+        '<div class="log-lines">' + linesHtml + "</div>" +
+      "</div>";
+    }).join("");
+  }
+
+  function filterLogBlocks() {
+    const q = document.getElementById("logSearchInput").value.trim();
+    const filtered = !q ? allLogBlocks : allLogBlocks.filter(b =>
+      (b.phone||"").includes(q) || (b.lines||[]).some(l => l.toLowerCase().includes(q.toLowerCase()))
+    );
+    renderLogBlocks(filtered);
+  }
+
   function renderLeads(leads) {
-    const el = document.getElementById('leadsList');
-    document.getElementById('leadsCount').textContent = leads.length;
+    const el = document.getElementById("leadsList");
+    document.getElementById("leadsCount").textContent = leads.length;
     if (!leads.length) { el.innerHTML = '<div class="empty">Nenhum lead</div>'; return; }
     el.innerHTML = leads.map((l,idx) => {
       const name = l.nome || l.phone;
       const badges = [];
-      if (l.nicho) badges.push('<span class="badge badge-nicho">' + esc(l.nicho) + '</span>');
+      if (l.nicho) badges.push('<span class="badge badge-nicho">' + esc(l.nicho) + "</span>");
       if (l.event_id) badges.push('<span class="badge badge-agendado">Agendado</span>');
       else if (l.has_followup) badges.push('<span class="badge badge-followup">Follow-up</span>');
-      badges.push('<span class="badge badge-msgs">' + l.msg_count + ' msgs</span>');
-      return '<div class="lead-item' + (selectedPhone===l.phone?' active':'') + '" onclick="selectLead('+idx+')">' +
-        '<div class="lead-name">' + esc(name) + '</div>' +
-        '<div class="lead-phone">' + esc(l.phone) + '</div>' +
-        '<div class="lead-meta">' + badges.join('') + '</div></div>';
-    }).join('');
+      badges.push('<span class="badge badge-msgs">' + l.msg_count + " msgs</span>");
+      return '<div class="lead-item' + (selectedPhone===l.phone?" active":"") + '" onclick="selectLead(' + idx + ')">'  +
+        '<div class="lead-name">' + esc(name) + "</div>" +
+        '<div class="lead-phone">' + esc(l.phone) + "</div>" +
+        '<div class="lead-meta">' + badges.join("") + "</div></div>";
+    }).join("");
   }
 
   function getFilteredLeads() {
-    const q = document.getElementById('searchInput').value.toLowerCase();
+    const q = document.getElementById("searchInput").value.toLowerCase();
     return !q ? allLeads : allLeads.filter(l =>
-      (l.nome||'').toLowerCase().includes(q) || l.phone.includes(q) || (l.nicho||'').toLowerCase().includes(q));
+      (l.nome||"").toLowerCase().includes(q) || l.phone.includes(q) || (l.nicho||"").toLowerCase().includes(q));
   }
 
   function filterLeads() { renderLeads(getFilteredLeads()); }
@@ -143,31 +246,31 @@
     const lead = filtered[idx];
     selectedPhone = lead.phone;
     renderLeads(filtered);
-    const chat = document.getElementById('panelChat');
+    const chat = document.getElementById("panelChat");
     const name = lead.nome || lead.phone;
-    const tags = [lead.nicho, lead.event_id ? 'Reuniao agendada' : (lead.has_followup ? 'Follow-up ativo' : '')].filter(Boolean).join(' . ');
+    const tags = [lead.nicho, lead.event_id ? "Reuniao agendada" : (lead.has_followup ? "Follow-up ativo" : "")].filter(Boolean).join(" · ");
     chat.innerHTML =
       '<div class="chat-header">' +
-        '<div class="lead-title">' + esc(name) + '</div>' +
-        '<div class="lead-details">' + esc(lead.phone) + (tags?' . '+esc(tags):'') + '</div>' +
-        (lead.resumo ? '<div class="resumo-box"><strong>Resumo:</strong> ' + esc(lead.resumo) + '</div>' : '') +
-      '</div>' +
+        '<div class="lead-title">' + esc(name) + "</div>" +
+        '<div class="lead-details">' + esc(lead.phone) + (tags?" · "+esc(tags):"") + "</div>" +
+        (lead.resumo ? '<div class="resumo-box"><strong>Resumo:</strong> ' + esc(lead.resumo) + "</div>" : "") +
+      "</div>" +
       '<div class="messages" id="messages"><div class="loading">Carregando...</div></div>';
     try {
-      const res = await fetch(clients[selectedClient].url + '/logs/history/' + lead.phone);
-      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const res = await fetch(clients[selectedClient].url + "/logs/history/" + lead.phone);
+      if (!res.ok) throw new Error("HTTP " + res.status);
       const msgs = await res.json();
-      const container = document.getElementById('messages');
+      const container = document.getElementById("messages");
       if (!msgs.length) { container.innerHTML = '<div class="loading">Sem mensagens</div>'; return; }
       container.innerHTML = msgs.map(m => {
-        const isAi = m.role === 'ai';
-        return '<div class="msg-wrapper' + (isAi?' right':'') + '">' +
-          '<div class="msg-label' + (isAi?' right':'') + '">' + (isAi ? esc(clients[selectedClient].name) : esc(name)) + '</div>' +
-          '<div class="msg ' + (isAi?'ai':'human') + '">' + esc(m.content) + '</div></div>';
-      }).join('');
+        const isAi = m.role === "ai";
+        return '<div class="msg-wrapper' + (isAi?" right":"") + '">' +
+          '<div class="msg-label' + (isAi?" right":"") + '">' + (isAi ? esc(clients[selectedClient].name) : esc(name)) + "</div>" +
+          '<div class="msg ' + (isAi?"ai":"human") + '">' + esc(m.content) + "</div></div>";
+      }).join("");
       container.scrollTop = container.scrollHeight;
     } catch(e) {
-      document.getElementById('messages').innerHTML = '<div class="loading" style="color:#ef4444">Erro: ' + esc(e.message) + '</div>';
+      document.getElementById("messages").innerHTML = '<div class="loading" style="color:#ef4444">Erro: ' + esc(e.message) + "</div>";
     }
   }
 
