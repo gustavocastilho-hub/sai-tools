@@ -51,7 +51,6 @@
     .msg-label.right { text-align: right; }
     .msg-wrapper { display: flex; flex-direction: column; }
     .msg-wrapper.right { align-items: flex-end; }
-    /* LOGS VIEW */
     .log-item { padding: 10px 14px; cursor: pointer; border-bottom: 1px solid #f3f4f6; margin-bottom: 4px; transition: background .1s; }
     .log-item:hover { background: #f9fafb; }
     .log-item.active { background: #ede9fe; }
@@ -72,6 +71,8 @@
     .log-search input:focus { border-color: #4f46e5; }
     .empty { flex: 1; display: flex; align-items: center; justify-content: center; color: #9ca3af; font-size: 14px; }
     .loading { color: #9ca3af; font-size: 13px; padding: 20px; text-align: center; }
+    .refresh-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #22c55e; margin-left: 6px; vertical-align: middle; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
   </style>
 </head>
 <body>
@@ -94,7 +95,7 @@
     </div>
     <!-- LOGS LIST -->
     <div id="logsView" style="display:none;flex-direction:column;flex:1;overflow:hidden;">
-      <div class="panel-title" style="border-top:none;">Execucoes <span id="logsCount"></span></div>
+      <div class="panel-title" style="border-top:none;">Execucoes <span id="logsCount"></span><span id="refreshDot" style="display:none" class="refresh-dot"></span></div>
       <div class="log-search"><input type="text" id="logSearchInput" placeholder="Filtrar por numero..." oninput="filterLogBlocks()"></div>
       <div class="leads-list" id="logBlockList"><div class="empty">Selecione um cliente</div></div>
     </div>
@@ -108,6 +109,11 @@
   let selectedClient = null;
   let selectedPhone = null;
   let currentTab = "leads";
+  let selectedLogIdx = null;
+  let selectedLogTs = null;
+  let filteredLogBlocks = [];
+  let autoRefreshTimer = null;
+  let lastLogTs = null;
 
   function esc(s) { return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
 
@@ -117,9 +123,18 @@
     document.getElementById("tabLogs").className = "tab" + (tab==="logs"?" active":"");
     document.getElementById("leadsView").style.display = tab==="leads"?"flex":"none";
     document.getElementById("logsView").style.display = tab==="logs"?"flex":"none";
-    if (tab==="logs" && selectedClient!==null && !allLogBlocks.length) loadLogs();
-    if (tab==="leads") document.getElementById("panelChat").innerHTML = '<div class="empty">Selecione um lead</div>';
-    if (tab==="logs") document.getElementById("panelChat").innerHTML = '<div class="empty">Selecione uma execucao</div>';
+    if (tab==="logs") {
+      document.getElementById("refreshDot").style.display = "";
+      document.getElementById("panelChat").innerHTML = '<div class="empty">Selecione uma execucao</div>';
+      if (selectedClient !== null) loadLogs();
+      if (!autoRefreshTimer) autoRefreshTimer = setInterval(function() {
+        if (selectedClient !== null) loadLogs();
+      }, 5000);
+    } else {
+      document.getElementById("refreshDot").style.display = "none";
+      clearInterval(autoRefreshTimer); autoRefreshTimer = null;
+      document.getElementById("panelChat").innerHTML = '<div class="empty">Selecione um lead</div>';
+    }
   }
 
   async function loadClients() {
@@ -145,7 +160,7 @@
   }
 
   async function selectClient(i) {
-    selectedClient = i; selectedPhone = null; allLogBlocks = [];
+    selectedClient = i; selectedPhone = null; allLogBlocks = []; lastLogTs = null;
     renderClients();
     document.getElementById("panelChat").innerHTML = '<div class="empty">Selecione um lead</div>';
     document.getElementById("leadsList").innerHTML = '<div class="loading">Carregando leads...</div>';
@@ -166,12 +181,24 @@
   }
 
   async function loadLogs() {
-    document.getElementById("logBlockList").innerHTML = '<div class="loading">Carregando logs...</div>';
+    const isFirst = !allLogBlocks.length;
+    if (isFirst) document.getElementById("logBlockList").innerHTML = '<div class="loading">Carregando logs...</div>';
     try {
       const res = await fetch(clients[selectedClient].url + "/logs/events?limit=100");
       if (!res.ok) throw new Error("HTTP " + res.status);
-      allLogBlocks = await res.json();
-      renderLogBlocks(allLogBlocks);
+      const data = await res.json();
+      const newestTs = data.length ? data[0].ts : null;
+      if (newestTs !== lastLogTs || isFirst) {
+        lastLogTs = newestTs;
+        allLogBlocks = data;
+        const q = document.getElementById("logSearchInput").value.trim();
+        const filtered = !q ? allLogBlocks : allLogBlocks.filter(function(b) {
+          return (b.phone||"").includes(q) || (b.lines||[]).some(function(l) { return l.toLowerCase().includes(q.toLowerCase()); });
+        });
+        renderLogBlocks(filtered);
+      }
+      const now = new Date().toLocaleTimeString("pt-BR", {hour:"2-digit",minute:"2-digit",second:"2-digit"});
+      document.getElementById("logsCount").textContent = allLogBlocks.length + " \xb7 " + now;
     } catch(e) {
       document.getElementById("logBlockList").innerHTML = '<div class="loading" style="color:#ef4444">Erro: ' + esc(e.message) + "</div>";
     }
@@ -187,9 +214,6 @@
     return "";
   }
 
-  let selectedLogIdx = null;
-  let filteredLogBlocks = [];
-
   function fmtTime(ts) {
     const d = new Date(ts * 1000);
     return d.toLocaleDateString("pt-BR", {timeZone:"America/Sao_Paulo"}) + " " +
@@ -198,25 +222,30 @@
 
   function renderLogBlocks(blocks) {
     filteredLogBlocks = blocks;
+    if (selectedLogTs !== null) {
+      const newIdx = blocks.findIndex(function(b) { return b.ts === selectedLogTs; });
+      selectedLogIdx = newIdx >= 0 ? newIdx : null;
+      if (newIdx < 0) selectedLogTs = null;
+    }
     const el = document.getElementById("logBlockList");
-    document.getElementById("logsCount").textContent = blocks.length;
     if (!blocks.length) { el.innerHTML = '<div class="empty">Nenhum log</div>'; return; }
-    el.innerHTML = blocks.map((b, i) =>
-      '<div class="log-item' + (selectedLogIdx===i?" active":"") + '" onclick="selectLogBlock(' + i + ')">' +
+    el.innerHTML = blocks.map(function(b, i) {
+      return '<div class="log-item' + (selectedLogIdx===i?" active":"") + '" onclick="selectLogBlock(' + i + ')">' +
         '<div class="log-item-phone">' + esc(b.phone||"?") + "</div>" +
         '<div class="log-item-time">' + fmtTime(b.ts) + "</div>" +
-      "</div>"
-    ).join("");
+      "</div>";
+    }).join("");
   }
 
   function selectLogBlock(i) {
     selectedLogIdx = i;
+    selectedLogTs = filteredLogBlocks[i].ts;
     renderLogBlocks(filteredLogBlocks);
     const b = filteredLogBlocks[i];
     const chat = document.getElementById("panelChat");
-    const linesHtml = (b.lines||[]).map(line => {
+    const linesHtml = (b.lines||[]).map(function(line) {
       const cls = lineClass(line);
-      return '<div' + (cls?' class="'+cls+'"':'') + '>' + esc(line) + "</div>";
+      return '<div' + (cls?' class="'+cls+'"':'') + '>' + line + "</div>";
     }).join("");
     chat.innerHTML =
       '<div class="log-detail-header">' +
@@ -228,10 +257,11 @@
 
   function filterLogBlocks() {
     const q = document.getElementById("logSearchInput").value.trim();
-    const filtered = !q ? allLogBlocks : allLogBlocks.filter(b =>
-      (b.phone||"").includes(q) || (b.lines||[]).some(l => l.toLowerCase().includes(q.toLowerCase()))
-    );
+    const filtered = !q ? allLogBlocks : allLogBlocks.filter(function(b) {
+      return (b.phone||"").includes(q) || (b.lines||[]).some(function(l) { return l.toLowerCase().includes(q.toLowerCase()); });
+    });
     selectedLogIdx = null;
+    selectedLogTs = null;
     renderLogBlocks(filtered);
     document.getElementById("panelChat").innerHTML = '<div class="empty">Selecione uma execucao</div>';
   }
@@ -240,7 +270,7 @@
     const el = document.getElementById("leadsList");
     document.getElementById("leadsCount").textContent = leads.length;
     if (!leads.length) { el.innerHTML = '<div class="empty">Nenhum lead</div>'; return; }
-    el.innerHTML = leads.map((l,idx) => {
+    el.innerHTML = leads.map(function(l,idx) {
       const name = l.nome || l.phone;
       const badges = [];
       if (l.nicho) badges.push('<span class="badge badge-nicho">' + esc(l.nicho) + "</span>");
@@ -256,8 +286,9 @@
 
   function getFilteredLeads() {
     const q = document.getElementById("searchInput").value.toLowerCase();
-    return !q ? allLeads : allLeads.filter(l =>
-      (l.nome||"").toLowerCase().includes(q) || l.phone.includes(q) || (l.nicho||"").toLowerCase().includes(q));
+    return !q ? allLeads : allLeads.filter(function(l) {
+      return (l.nome||"").toLowerCase().includes(q) || l.phone.includes(q) || (l.nicho||"").toLowerCase().includes(q);
+    });
   }
 
   function filterLeads() { renderLeads(getFilteredLeads()); }
@@ -269,11 +300,11 @@
     renderLeads(filtered);
     const chat = document.getElementById("panelChat");
     const name = lead.nome || lead.phone;
-    const tags = [lead.nicho, lead.event_id ? "Reuniao agendada" : (lead.has_followup ? "Follow-up ativo" : "")].filter(Boolean).join(" · ");
+    const tags = [lead.nicho, lead.event_id ? "Reuniao agendada" : (lead.has_followup ? "Follow-up ativo" : "")].filter(Boolean).join(" \xb7 ");
     chat.innerHTML =
       '<div class="chat-header">' +
         '<div class="lead-title">' + esc(name) + "</div>" +
-        '<div class="lead-details">' + esc(lead.phone) + (tags?" · "+esc(tags):"") + "</div>" +
+        '<div class="lead-details">' + esc(lead.phone) + (tags?" \xb7 "+esc(tags):"") + "</div>" +
         (lead.resumo ? '<div class="resumo-box"><strong>Resumo:</strong> ' + esc(lead.resumo) + "</div>" : "") +
       "</div>" +
       '<div class="messages" id="messages"><div class="loading">Carregando...</div></div>';
@@ -283,7 +314,7 @@
       const msgs = await res.json();
       const container = document.getElementById("messages");
       if (!msgs.length) { container.innerHTML = '<div class="loading">Sem mensagens</div>'; return; }
-      container.innerHTML = msgs.map(m => {
+      container.innerHTML = msgs.map(function(m) {
         const isAi = m.role === "ai";
         return '<div class="msg-wrapper' + (isAi?" right":"") + '">' +
           '<div class="msg-label' + (isAi?" right":"") + '">' + (isAi ? esc(clients[selectedClient].name) : esc(name)) + "</div>" +
