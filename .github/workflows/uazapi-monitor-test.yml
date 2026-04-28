@@ -1,0 +1,46 @@
+name: uazapi-monitor-test
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Nome da instancia uazapi para gerar alerta de teste (precisa estar atualmente desconectada)"
+        required: true
+        default: "Lia"
+
+permissions:
+  contents: read
+
+jobs:
+  controlled-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Restore state cache (compartilhado com monitor)
+        uses: actions/cache@v4
+        with:
+          path: state
+          key: uazapi-state-${{ github.run_id }}
+          restore-keys: |
+            uazapi-state-
+
+      - name: Seed state (marca todas as desconectadas como ja alertadas, exceto target)
+        env:
+          UAZAPI_URL: ${{ secrets.UAZAPI_URL }}
+          UAZAPI_ADMIN_TOKEN: ${{ secrets.UAZAPI_ADMIN_TOKEN }}
+          STATE_FILE: state/uazapi-state.json
+        run: node scripts/uazapi-seed-state.mjs --except "${{ inputs.target }}"
+
+      - name: Run monitor (deve alertar apenas a target)
+        env:
+          UAZAPI_URL: ${{ secrets.UAZAPI_URL }}
+          UAZAPI_ADMIN_TOKEN: ${{ secrets.UAZAPI_ADMIN_TOKEN }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_IDS: ${{ secrets.TELEGRAM_CHAT_IDS }}
+          STATE_FILE: state/uazapi-state.json
+        run: node scripts/uazapi-monitor.mjs
