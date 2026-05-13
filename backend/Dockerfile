@@ -1,4 +1,4 @@
-﻿FROM node:22-alpine AS deps
+FROM node:22-alpine AS deps
 WORKDIR /app
 COPY package*.json ./
 COPY prisma ./prisma
@@ -19,4 +19,4 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
 COPY package*.json ./
 EXPOSE 3000
-CMD ["sh","-c","npx prisma migrate deploy && node dist/index.js"]
+CMD ["sh","-c","npx prisma db push --skip-generate --accept-data-loss && node dist/index.js"]
