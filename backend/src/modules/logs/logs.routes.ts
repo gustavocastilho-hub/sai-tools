@@ -1,4 +1,4 @@
-﻿import { Router } from 'express';
+import { Router } from 'express';
 import { authenticateJWT } from '../../middleware/auth';
 import { getClients, registerWebhook, getLeads, getHistory, getEvents } from './logs.controller';
 

@@ -1,4 +1,4 @@
-﻿import { LogsService } from './logs.service';
+import { LogsService } from './logs.service';
 
 const service = new LogsService();
 

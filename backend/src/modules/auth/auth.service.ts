@@ -1,4 +1,4 @@
-﻿import jwt from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
 
 export class AuthService {
   login(password: string): { token: string; expiresIn: number } | null {
