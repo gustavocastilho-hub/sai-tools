@@ -89,6 +89,12 @@ const ChevronLeft = () => (
   </svg>
 );
 
+const MenuIcon = () => (
+  <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+  </svg>
+);
+
 export function DashboardPage() {
   const nav = useNavigate();
   const [clients, setClients] = useState<Client[]>([]);
@@ -103,6 +109,7 @@ export function DashboardPage() {
   const [loadingLeads, setLoadingLeads] = useState(false);
   const [loadingEvents, setLoadingEvents] = useState(false);
   const [lastRefresh, setLastRefresh] = useState<string>('');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const tokenRef = useRef<string | null>(null);
 
   const fetchAuth = (url: string) =>
@@ -190,17 +197,26 @@ export function DashboardPage() {
     return summarize(selectedEvent.lines, selectedEvent.ts);
   }, [selectedEvent]);
 
-  // Estados de navegacao mobile (md:hidden controla)
+  // Mobile: lista vs detalhe (stacked). Sidebar e sempre drawer no mobile.
   const hasSelectedItem = (tab === 'leads' && selectedLead) || (tab === 'events' && selectedEvent);
-  const mobileShowSidebar = !selectedClient;
-  const mobileShowList = !!selectedClient && !hasSelectedItem;
-  const mobileShowDetail = !!selectedClient && !!hasSelectedItem;
+  const mobileShowList = !hasSelectedItem;
+  const mobileShowDetail = !!hasSelectedItem;
 
   return (
     <div className="h-screen flex flex-col md:flex-row bg-gray-50 text-gray-900 overflow-hidden">
-      {/* Sidebar (clientes) */}
+      {/* Backdrop do drawer mobile */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/40 z-30 md:hidden"
+          onClick={() => setSidebarOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+      {/* Sidebar (clientes) — drawer no mobile, fixo no desktop */}
       <aside
-        className={`${mobileShowSidebar ? 'flex' : 'hidden'} md:flex w-full md:w-60 bg-white border-r border-gray-200 flex-col flex-shrink-0 h-full`}
+        className={`fixed md:static inset-y-0 left-0 z-40 w-64 md:w-60 bg-white border-r border-gray-200 flex flex-col flex-shrink-0 h-full transform transition-transform duration-200 ease-out ${
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        } md:translate-x-0`}
       >
         <div className="px-4 py-4 border-b border-gray-200 flex items-center gap-3">
           <img src="/favicon-sai.png" alt="SAI" className="w-8 h-8 rounded-md" />
@@ -209,10 +225,11 @@ export function DashboardPage() {
             <div className="text-[11px] font-medium text-gray-500 uppercase tracking-wide truncate">Painel de execucoes</div>
           </div>
           <button
-            onClick={logout}
-            className="md:hidden text-xs text-gray-500 hover:text-gray-900 px-2 py-1 rounded border border-gray-200"
+            onClick={() => setSidebarOpen(false)}
+            className="md:hidden text-gray-400 hover:text-gray-600 text-2xl leading-none px-2"
+            aria-label="Fechar menu"
           >
-            Sair
+            &times;
           </button>
         </div>
         <div className="px-4 pt-3 pb-1 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
@@ -226,7 +243,7 @@ export function DashboardPage() {
             return (
               <button
                 key={c.id}
-                onClick={() => { setSelectedClient(c); setSelectedLead(null); setSelectedEvent(null); setSearch(''); }}
+                onClick={() => { setSelectedClient(c); setSelectedLead(null); setSelectedEvent(null); setSearch(''); setSidebarOpen(false); }}
                 className={`w-full text-left px-3 py-3 md:py-2 rounded-lg transition-colors ${
                   active
                     ? 'bg-blue-50 text-blue-700'
@@ -241,7 +258,7 @@ export function DashboardPage() {
             );
           })}
         </nav>
-        <div className="hidden md:block px-3 py-3 border-t border-gray-200">
+        <div className="px-3 py-3 border-t border-gray-200">
           <button
             onClick={logout}
             className="w-full text-left text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 px-3 py-2 rounded-lg transition-colors"
@@ -254,13 +271,13 @@ export function DashboardPage() {
       {/* Main */}
       <div className="flex-1 flex flex-col min-w-0 min-h-0">
         {/* Topbar */}
-        <header className={`${mobileShowSidebar ? 'hidden' : 'flex'} md:flex bg-white border-b border-gray-200 px-4 md:px-6 py-3 items-center gap-3 flex-shrink-0`}>
+        <header className="flex bg-white border-b border-gray-200 px-4 md:px-6 py-3 items-center gap-3 flex-shrink-0">
           <button
-            onClick={() => { setSelectedClient(null); setSelectedLead(null); setSelectedEvent(null); }}
+            onClick={() => setSidebarOpen(true)}
             className="md:hidden p-1 -ml-1 text-gray-500 hover:text-gray-900 rounded"
-            aria-label="Voltar para clientes"
+            aria-label="Abrir menu"
           >
-            <ChevronLeft />
+            <MenuIcon />
           </button>
           <div className="min-w-0 flex-1">
             <h1 className="text-[15px] md:text-[17px] font-semibold text-gray-900 truncate">
@@ -282,7 +299,7 @@ export function DashboardPage() {
         <div className="flex flex-1 min-h-0">
           {/* Coluna central (lista de leads/execucoes) */}
           <section
-            className={`${mobileShowList ? 'flex' : 'hidden'} md:flex w-full md:w-80 bg-white md:border-r border-gray-200 flex-col flex-shrink-0 min-h-0`}
+            className={`${mobileShowList ? 'flex' : 'hidden'} md:flex w-full md:w-80 bg-white border-r border-gray-200 flex-col flex-shrink-0 min-h-0`}
           >
             <div className="flex border-b border-gray-200 px-2 md:px-4 gap-1">
               {(['leads', 'events'] as const).map((t) => {

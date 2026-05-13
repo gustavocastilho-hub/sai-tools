@@ -1,4 +1,4 @@
-﻿import { useState, FormEvent } from 'react';
+﻿import { useState, useEffect, FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 export function LoginPage() {
@@ -6,6 +6,10 @@ export function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const nav = useNavigate();
+
+  useEffect(() => {
+    if (localStorage.getItem('token')) nav('/dashboard', { replace: true });
+  }, [nav]);
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
