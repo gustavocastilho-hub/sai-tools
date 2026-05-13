@@ -1,0 +1,66 @@
+﻿generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model ChatbotClient {
+  id        String   @id @default(cuid())
+  name      String
+  url       String   @unique
+  createdAt DateTime @default(now())
+
+  leads     Lead[]
+  logEvents LogEvent[]
+
+  @@map("chatbot_clients")
+}
+
+model Lead {
+  id           String   @id @default(cuid())
+  clientId     String
+  phone        String
+  nome         String?
+  nicho        String?
+  msg_count    Int      @default(0)
+  has_followup Boolean  @default(false)
+  event_id     String?
+  resumo       String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  client ChatbotClient @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@unique([clientId, phone])
+  @@index([clientId])
+  @@map("leads")
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  phone     String
+  role      String
+  content   String
+  createdAt DateTime @default(now())
+
+  @@index([phone])
+  @@map("messages")
+}
+
+model LogEvent {
+  id        String   @id @default(cuid())
+  phone     String
+  ts        Int
+  lines     String[]
+  clientId  String
+  createdAt DateTime @default(now())
+
+  client ChatbotClient @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@index([ts])
+  @@map("log_events")
+}

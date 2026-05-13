@@ -1,0 +1,52 @@
+﻿version: "3.8"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: sai_logs
+      POSTGRES_USER: ${DB_USER:-sai}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD required}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks: [internal]
+    deploy:
+      restart_policy: { condition: any }
+
+  backend:
+    image: ghcr.io/strategicai-hub/sai-tools-backend:latest
+    depends_on: [postgres]
+    environment:
+      DATABASE_URL: postgresql://${DB_USER:-sai}:${DB_PASSWORD}@postgres:5432/sai_logs
+      ACCESS_TOKEN_SECRET: ${ACCESS_TOKEN_SECRET:?required}
+      MASTER_PASSWORD: ${MASTER_PASSWORD:?required}
+      SYNC_INTERVAL_SECONDS: ${SYNC_INTERVAL_SECONDS:-300}
+      PORT: "3000"
+      NODE_ENV: production
+    networks: [internal]
+    deploy:
+      restart_policy: { condition: any }
+
+  frontend:
+    image: ghcr.io/strategicai-hub/sai-tools-frontend:latest
+    networks: [internal, network_public]
+    deploy:
+      restart_policy: { condition: any }
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.sai-http.rule=Host(`tools.strategicai.com.br`)"
+        - "traefik.http.routers.sai-http.entrypoints=web"
+        - "traefik.http.routers.sai-http.middlewares=sai-https"
+        - "traefik.http.routers.sai.rule=Host(`tools.strategicai.com.br`)"
+        - "traefik.http.routers.sai.entrypoints=websecure"
+        - "traefik.http.routers.sai.tls.certresolver=letsencryptresolver"
+        - "traefik.http.services.sai-front.loadbalancer.server.port=80"
+        - "traefik.http.middlewares.sai-https.redirectscheme.scheme=https"
+        - "traefik.docker.network=network_public"
+
+networks:
+  internal: { driver: overlay }
+  network_public: { external: true }
+
+volumes:
+  pgdata:
