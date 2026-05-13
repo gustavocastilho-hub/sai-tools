@@ -203,7 +203,7 @@ export function DashboardPage() {
   const mobileShowDetail = !!hasSelectedItem;
 
   return (
-    <div className="h-screen flex flex-col md:flex-row bg-gray-50 text-gray-900 overflow-hidden">
+    <div className="h-[100dvh] flex flex-col md:flex-row bg-gray-50 text-gray-900 overflow-hidden">
       {/* Backdrop do drawer mobile */}
       {sidebarOpen && (
         <div

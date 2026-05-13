@@ -30,12 +30,20 @@ export class LogsService {
     });
   }
 
-  async getHistory(phone: string) {
-    return prisma.message.findMany({
-      where: { phone },
-      select: { role: true, content: true },
-      orderBy: { createdAt: 'asc' },
-    });
+  async getHistory(clientId: string, phone: string) {
+    const client = await prisma.chatbotClient.findUnique({ where: { id: clientId } });
+    if (!client) return [];
+    try {
+      const r = await axios.get(`${client.url}/logs/history/${phone}`, { timeout: 8000 });
+      return Array.isArray(r.data) ? r.data : [];
+    } catch (err: any) {
+      console.warn(`[history] ${client.name} ${phone} failed: ${err?.message || err}`);
+      return prisma.message.findMany({
+        where: { phone },
+        select: { role: true, content: true },
+        orderBy: { createdAt: 'asc' },
+      });
+    }
   }
 
   async getEvents(clientId: string, limit: number) {

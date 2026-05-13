@@ -18,7 +18,7 @@ export const getLeads = async (req: Request, res: Response) => {
 };
 
 export const getHistory = async (req: Request, res: Response) => {
-  res.json(await service.getHistory(req.params.phone));
+  res.json(await service.getHistory(req.params.clientId, req.params.phone));
 };
 
 export const getEvents = async (req: Request, res: Response) => {
