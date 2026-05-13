@@ -83,6 +83,12 @@ function summarize(lines: string[], ts: number) {
   return counts;
 }
 
+const ChevronLeft = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+  </svg>
+);
+
 export function DashboardPage() {
   const nav = useNavigate();
   const [clients, setClients] = useState<Client[]>([]);
@@ -184,16 +190,30 @@ export function DashboardPage() {
     return summarize(selectedEvent.lines, selectedEvent.ts);
   }, [selectedEvent]);
 
+  // Estados de navegacao mobile (md:hidden controla)
+  const hasSelectedItem = (tab === 'leads' && selectedLead) || (tab === 'events' && selectedEvent);
+  const mobileShowSidebar = !selectedClient;
+  const mobileShowList = !!selectedClient && !hasSelectedItem;
+  const mobileShowDetail = !!selectedClient && !!hasSelectedItem;
+
   return (
-    <div className="h-screen flex bg-gray-50 text-gray-900 overflow-hidden">
-      {/* Sidebar (clientes) — estilo CRM */}
-      <aside className="w-60 bg-white border-r border-gray-200 flex flex-col flex-shrink-0">
+    <div className="h-screen flex flex-col md:flex-row bg-gray-50 text-gray-900 overflow-hidden">
+      {/* Sidebar (clientes) */}
+      <aside
+        className={`${mobileShowSidebar ? 'flex' : 'hidden'} md:flex w-full md:w-60 bg-white border-r border-gray-200 flex-col flex-shrink-0 h-full`}
+      >
         <div className="px-4 py-4 border-b border-gray-200 flex items-center gap-3">
           <img src="/favicon-sai.png" alt="SAI" className="w-8 h-8 rounded-md" />
-          <div>
+          <div className="flex-1 min-w-0">
             <div className="text-[15px] font-bold text-gray-900 leading-tight">SAI Logs</div>
-            <div className="text-[11px] font-medium text-gray-500 uppercase tracking-wide">Painel de execucoes</div>
+            <div className="text-[11px] font-medium text-gray-500 uppercase tracking-wide truncate">Painel de execucoes</div>
           </div>
+          <button
+            onClick={logout}
+            className="md:hidden text-xs text-gray-500 hover:text-gray-900 px-2 py-1 rounded border border-gray-200"
+          >
+            Sair
+          </button>
         </div>
         <div className="px-4 pt-3 pb-1 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
           Clientes
@@ -207,10 +227,10 @@ export function DashboardPage() {
               <button
                 key={c.id}
                 onClick={() => { setSelectedClient(c); setSelectedLead(null); setSelectedEvent(null); setSearch(''); }}
-                className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
+                className={`w-full text-left px-3 py-3 md:py-2 rounded-lg transition-colors ${
                   active
                     ? 'bg-blue-50 text-blue-700'
-                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                    : 'text-gray-600 hover:bg-gray-50 active:bg-gray-100 hover:text-gray-900'
                 }`}
               >
                 <div className="text-sm font-semibold truncate">{c.name}</div>
@@ -221,7 +241,7 @@ export function DashboardPage() {
             );
           })}
         </nav>
-        <div className="px-3 py-3 border-t border-gray-200">
+        <div className="hidden md:block px-3 py-3 border-t border-gray-200">
           <button
             onClick={logout}
             className="w-full text-left text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 px-3 py-2 rounded-lg transition-colors"
@@ -232,37 +252,47 @@ export function DashboardPage() {
       </aside>
 
       {/* Main */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 min-h-0">
         {/* Topbar */}
-        <header className="bg-white border-b border-gray-200 px-6 py-3 flex items-center gap-4 flex-shrink-0">
-          <div className="min-w-0">
-            <h1 className="text-[17px] font-semibold text-gray-900 truncate">
+        <header className={`${mobileShowSidebar ? 'hidden' : 'flex'} md:flex bg-white border-b border-gray-200 px-4 md:px-6 py-3 items-center gap-3 flex-shrink-0`}>
+          <button
+            onClick={() => { setSelectedClient(null); setSelectedLead(null); setSelectedEvent(null); }}
+            className="md:hidden p-1 -ml-1 text-gray-500 hover:text-gray-900 rounded"
+            aria-label="Voltar para clientes"
+          >
+            <ChevronLeft />
+          </button>
+          <div className="min-w-0 flex-1">
+            <h1 className="text-[15px] md:text-[17px] font-semibold text-gray-900 truncate">
               {selectedClient?.name || 'Selecione um cliente'}
             </h1>
-            <div className="text-[13px] text-gray-500 truncate">
+            <div className="text-[12px] md:text-[13px] text-gray-500 truncate">
               {selectedClient ? selectedClient.url.replace(/^https?:\/\//, '') : 'Conversas e execucoes do bot em tempo real'}
             </div>
           </div>
           {tab === 'events' && selectedClient && (
-            <div className="ml-auto inline-flex items-center gap-2 text-xs text-gray-600 bg-gray-100 px-3 py-1 rounded-full">
+            <div className="inline-flex items-center gap-2 text-[11px] md:text-xs text-gray-600 bg-gray-100 px-2.5 md:px-3 py-1 rounded-full whitespace-nowrap">
               <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-              {lastRefresh ? `atualizado ${lastRefresh}` : 'atualizando a cada 5s'}
+              <span className="hidden sm:inline">{lastRefresh ? `atualizado ${lastRefresh}` : 'atualizando a cada 5s'}</span>
+              <span className="sm:hidden">ao vivo</span>
             </div>
           )}
         </header>
 
         <div className="flex flex-1 min-h-0">
-          {/* Coluna central */}
-          <section className="w-80 bg-white border-r border-gray-200 flex flex-col flex-shrink-0">
-            <div className="flex border-b border-gray-200 px-4 gap-1">
+          {/* Coluna central (lista de leads/execucoes) */}
+          <section
+            className={`${mobileShowList ? 'flex' : 'hidden'} md:flex w-full md:w-80 bg-white md:border-r border-gray-200 flex-col flex-shrink-0 min-h-0`}
+          >
+            <div className="flex border-b border-gray-200 px-2 md:px-4 gap-1">
               {(['leads', 'events'] as const).map((t) => {
                 const active = tab === t;
                 const count = t === 'leads' ? filteredLeads.length : filteredEvents.length;
                 return (
                   <button
                     key={t}
-                    onClick={() => { setTab(t); setSearch(''); }}
-                    className={`py-3 px-3 text-[13px] font-medium transition-colors border-b-2 ${
+                    onClick={() => { setTab(t); setSearch(''); setSelectedLead(null); setSelectedEvent(null); }}
+                    className={`flex-1 md:flex-none py-3 px-3 text-[13px] font-medium transition-colors border-b-2 ${
                       active ? 'text-blue-700 border-blue-600' : 'text-gray-500 border-transparent hover:text-gray-900'
                     }`}
                   >
@@ -280,10 +310,10 @@ export function DashboardPage() {
                 placeholder={tab === 'leads' ? 'Buscar nome, numero ou nicho...' : 'Filtrar por numero ou conteudo...'}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 focus:bg-white focus:border-blue-500 focus:outline-none transition-colors"
+                className="w-full px-3 py-2 text-base md:text-sm border border-gray-200 rounded-lg bg-gray-50 focus:bg-white focus:border-blue-500 focus:outline-none transition-colors"
               />
             </div>
-            <div className="flex-1 overflow-y-auto p-2">
+            <div className="flex-1 overflow-y-auto p-2 overscroll-contain">
               {!selectedClient ? (
                 <div className="p-6 text-center text-sm text-gray-400">Selecione um cliente</div>
               ) : tab === 'leads' ? (
@@ -299,10 +329,10 @@ export function DashboardPage() {
                         <button
                           key={i}
                           onClick={() => setSelectedLead(l)}
-                          className={`w-full text-left px-3 py-2.5 rounded-lg border transition-colors ${
+                          className={`w-full text-left px-3 py-3 md:py-2.5 rounded-lg border transition-colors ${
                             active
                               ? 'bg-blue-50 border-blue-100'
-                              : 'border-transparent hover:bg-gray-50'
+                              : 'border-transparent hover:bg-gray-50 active:bg-gray-100'
                           }`}
                         >
                           <div className="text-sm font-semibold text-gray-900 truncate">{l.nome || l.phone}</div>
@@ -342,10 +372,10 @@ export function DashboardPage() {
                         <button
                           key={i}
                           onClick={() => setSelectedEvent(e)}
-                          className={`w-full text-left px-3 py-2.5 rounded-lg border transition-colors ${
+                          className={`w-full text-left px-3 py-3 md:py-2.5 rounded-lg border transition-colors ${
                             active
                               ? 'bg-blue-50 border-blue-100'
-                              : 'border-transparent hover:bg-gray-50'
+                              : 'border-transparent hover:bg-gray-50 active:bg-gray-100'
                           }`}
                         >
                           <div className="text-sm font-semibold text-gray-900">{e.phone}</div>
@@ -369,29 +399,40 @@ export function DashboardPage() {
           </section>
 
           {/* Painel de detalhe */}
-          <main className="flex-1 flex flex-col bg-gray-50 min-w-0">
+          <main
+            className={`${mobileShowDetail ? 'flex' : 'hidden'} md:flex flex-1 flex-col bg-gray-50 min-w-0 min-h-0`}
+          >
             {tab === 'leads' && selectedLead ? (
               <>
-                <div className="bg-white border-b border-gray-200 px-6 py-4 flex-shrink-0">
-                  <div className="text-[17px] font-semibold text-gray-900">{selectedLead.nome || selectedLead.phone}</div>
-                  <div className="text-[13px] text-gray-500 mt-0.5">
-                    {selectedLead.phone}
-                    {selectedLead.nicho && ` · ${selectedLead.nicho}`}
-                    {selectedLead.event_id ? ' · Reuniao agendada' : selectedLead.has_followup ? ' · Follow-up ativo' : ''}
-                  </div>
-                  {selectedLead.resumo && (
-                    <div className="mt-3 bg-gray-50 border border-gray-200 border-l-4 border-l-blue-500 rounded-lg px-3.5 py-2.5 text-[13px] text-gray-700">
-                      <strong className="text-gray-900">Resumo:</strong> {stripHtml(selectedLead.resumo)}
+                <div className="bg-white border-b border-gray-200 px-4 md:px-6 py-3 md:py-4 flex-shrink-0 flex items-start gap-3">
+                  <button
+                    onClick={() => setSelectedLead(null)}
+                    className="md:hidden p-1 -ml-1 mt-0.5 text-gray-500 hover:text-gray-900 rounded flex-shrink-0"
+                    aria-label="Voltar para lista"
+                  >
+                    <ChevronLeft />
+                  </button>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[16px] md:text-[17px] font-semibold text-gray-900 truncate">{selectedLead.nome || selectedLead.phone}</div>
+                    <div className="text-[12px] md:text-[13px] text-gray-500 mt-0.5 truncate">
+                      {selectedLead.phone}
+                      {selectedLead.nicho && ` · ${selectedLead.nicho}`}
+                      {selectedLead.event_id ? ' · Reuniao agendada' : selectedLead.has_followup ? ' · Follow-up ativo' : ''}
                     </div>
-                  )}
+                    {selectedLead.resumo && (
+                      <div className="mt-3 bg-gray-50 border border-gray-200 border-l-4 border-l-blue-500 rounded-lg px-3 py-2 text-[12px] md:text-[13px] text-gray-700">
+                        <strong className="text-gray-900">Resumo:</strong> {stripHtml(selectedLead.resumo)}
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div className="flex-1 overflow-y-auto p-6 space-y-3">
+                <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-3 overscroll-contain">
                   {messages.length === 0 ? (
                     <div className="text-center text-gray-400 text-sm">Sem mensagens</div>
                   ) : messages.map((m, i) => {
                     const isAi = m.role === 'ai';
                     return (
-                      <div key={i} className={`flex flex-col max-w-[75%] ${isAi ? 'self-end items-end ml-auto' : ''}`}>
+                      <div key={i} className={`flex flex-col max-w-[85%] md:max-w-[75%] ${isAi ? 'self-end items-end ml-auto' : ''}`}>
                         <div className="text-[11px] text-gray-400 font-medium mb-1 px-1">
                           {isAi ? (selectedClient?.name || 'Bot') : (selectedLead.nome || selectedLead.phone)}
                         </div>
@@ -407,14 +448,23 @@ export function DashboardPage() {
               </>
             ) : tab === 'events' && selectedEvent && selectedEventCounts ? (
               <>
-                <div className="bg-white border-b border-gray-200 px-6 py-4 flex-shrink-0">
-                  <div className="text-[17px] font-semibold text-gray-900">{selectedEvent.phone}</div>
-                  <div className="text-[13px] text-gray-500 mt-0.5">
-                    {fmtFull(selectedEvent.ts)} · {selectedEvent.lines.length} linhas registradas
+                <div className="bg-white border-b border-gray-200 px-4 md:px-6 py-3 md:py-4 flex-shrink-0 flex items-start gap-3">
+                  <button
+                    onClick={() => setSelectedEvent(null)}
+                    className="md:hidden p-1 -ml-1 mt-0.5 text-gray-500 hover:text-gray-900 rounded flex-shrink-0"
+                    aria-label="Voltar para lista"
+                  >
+                    <ChevronLeft />
+                  </button>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[16px] md:text-[17px] font-semibold text-gray-900 truncate">{selectedEvent.phone}</div>
+                    <div className="text-[12px] md:text-[13px] text-gray-500 mt-0.5 truncate">
+                      {fmtFull(selectedEvent.ts)} · {selectedEvent.lines.length} linhas
+                    </div>
                   </div>
                 </div>
-                <div className="flex-1 overflow-y-auto p-6">
-                  <div className="bg-white border border-gray-200 rounded-xl p-4 mb-4 flex flex-wrap gap-6">
+                <div className="flex-1 overflow-y-auto p-4 md:p-6 overscroll-contain">
+                  <div className="bg-white border border-gray-200 rounded-xl p-3 md:p-4 mb-4 grid grid-cols-3 md:flex md:flex-wrap gap-4 md:gap-6">
                     <Stat label="Eventos" value={selectedEvent.lines.length} />
                     {selectedEventCounts.ERRO > 0 && <Stat label="Erros" value={selectedEventCounts.ERRO} color="text-red-600" />}
                     {selectedEventCounts.TOOL > 0 && <Stat label="Tool calls" value={selectedEventCounts.TOOL} color="text-sky-600" />}
@@ -428,25 +478,31 @@ export function DashboardPage() {
                     ) : selectedEventClassified.map((ev, i) => (
                       <div
                         key={i}
-                        className={`grid grid-cols-[80px_120px_1fr] gap-3 px-4 py-2 text-[13px] leading-relaxed items-start hover:bg-gray-50 ${
+                        className={`grid grid-cols-[60px_1fr] md:grid-cols-[80px_120px_1fr] gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-2.5 text-[13px] leading-relaxed items-start hover:bg-gray-50 ${
                           i < selectedEventClassified.length - 1 ? 'border-b border-gray-100' : ''
                         }`}
                       >
-                        <div className="font-mono text-[12px] text-gray-400">{ev.time}</div>
-                        <div>
+                        <div className="font-mono text-[11px] md:text-[12px] text-gray-400 row-span-2 md:row-span-1">{ev.time}</div>
+                        <div className="md:hidden flex items-center justify-between gap-2">
                           <span className={`inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded ${ev.tagClass}`}>
                             <span className="w-1.5 h-1.5 rounded-full bg-current" />
                             {ev.tag}
                           </span>
                         </div>
-                        <div className={`break-words ${ev.msgClass}`}>{ev.body || <span className="text-gray-300">—</span>}</div>
+                        <div className="hidden md:block">
+                          <span className={`inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded ${ev.tagClass}`}>
+                            <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                            {ev.tag}
+                          </span>
+                        </div>
+                        <div className={`break-words col-start-2 md:col-start-auto ${ev.msgClass}`}>{ev.body || <span className="text-gray-300">—</span>}</div>
                       </div>
                     ))}
                   </div>
                 </div>
               </>
             ) : (
-              <div className="flex-1 flex items-center justify-center text-gray-400 text-sm">
+              <div className="flex-1 flex items-center justify-center text-gray-400 text-sm p-6 text-center">
                 {tab === 'leads' ? 'Escolha um lead para ver a conversa' : 'Escolha uma execucao para inspecionar'}
               </div>
             )}
@@ -460,8 +516,8 @@ export function DashboardPage() {
 function Stat({ label, value, color }: { label: string; value: number; color?: string }) {
   return (
     <div className="flex flex-col">
-      <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">{label}</span>
-      <span className={`text-[18px] font-bold ${color || 'text-gray-900'}`}>{value}</span>
+      <span className="text-[10px] md:text-[11px] font-semibold text-gray-500 uppercase tracking-wide">{label}</span>
+      <span className={`text-[16px] md:text-[18px] font-bold ${color || 'text-gray-900'}`}>{value}</span>
     </div>
   );
 }
