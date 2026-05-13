@@ -3,105 +3,298 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Logs de Conversa</title>
+  <link rel="icon" type="image/png" href="./favicon-sai.png">
+  <title>SAI Logs</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: system-ui, sans-serif; background: #f0f2f5; height: 100vh; display: flex; flex-direction: column; }
-    header { background: #1e1b4b; color: white; padding: 14px 20px; display: flex; align-items: center; gap: 16px; flex-shrink: 0; }
-    header h1 { font-size: 16px; font-weight: 600; flex: 1; }
-    .layout { display: flex; flex: 1; overflow: hidden; }
-    .panel-clients { width: 200px; background: #1e1b4b; color: white; display: flex; flex-direction: column; flex-shrink: 0; }
-    .panel-clients .panel-title { padding: 12px 14px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: #a5b4fc; border-bottom: 1px solid #312e81; }
-    .client-item { padding: 10px 14px; cursor: pointer; font-size: 13px; border-bottom: 1px solid #312e81; transition: background .12s; }
-    .client-item:hover { background: #312e81; }
-    .client-item.active { background: #4f46e5; }
-    .client-item .client-name { font-weight: 500; }
-    .client-item .client-url { font-size: 11px; color: #a5b4fc; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .panel-leads { width: 260px; background: white; border-right: 1px solid #e5e7eb; display: flex; flex-direction: column; flex-shrink: 0; }
-    .panel-title { padding: 12px 14px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: #6b7280; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; justify-content: space-between; }
-    .tab-bar { display: flex; border-bottom: 1px solid #e5e7eb; flex-shrink: 0; }
-    .tab { flex: 1; padding: 9px; text-align: center; font-size: 12px; font-weight: 500; cursor: pointer; color: #6b7280; border-bottom: 2px solid transparent; transition: all .12s; }
-    .tab:hover { color: #4f46e5; }
-    .tab.active { color: #4f46e5; border-bottom-color: #4f46e5; }
-    .search-box { padding: 8px 10px; border-bottom: 1px solid #e5e7eb; flex-shrink: 0; }
-    .search-box input { width: 100%; border: 1px solid #e5e7eb; border-radius: 6px; padding: 6px 10px; font-size: 13px; outline: none; }
-    .search-box input:focus { border-color: #4f46e5; }
-    .leads-list { overflow-y: auto; flex: 1; }
-    .lead-item { padding: 10px 14px; cursor: pointer; border-bottom: 1px solid #f3f4f6; transition: background .1s; }
-    .lead-item:hover { background: #f9fafb; }
-    .lead-item.active { background: #ede9fe; }
-    .lead-name { font-size: 14px; font-weight: 500; color: #111; }
-    .lead-phone { font-size: 12px; color: #6b7280; margin-top: 1px; }
-    .lead-meta { display: flex; gap: 6px; margin-top: 4px; align-items: center; flex-wrap: wrap; }
-    .badge { font-size: 10px; padding: 1px 6px; border-radius: 10px; font-weight: 500; }
-    .badge-nicho { background: #e0e7ff; color: #3730a3; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #f9fafb;
+      --surface: #ffffff;
+      --border: #e5e7eb;
+      --border-soft: #f3f4f6;
+      --text: #111827;
+      --text-2: #374151;
+      --muted: #6b7280;
+      --muted-2: #9ca3af;
+      --primary: #2563eb;
+      --primary-50: #eff6ff;
+      --primary-100: #dbeafe;
+      --primary-700: #1d4ed8;
+      --success: #16a34a;
+      --warning: #d97706;
+      --danger: #dc2626;
+      --info: #0284c7;
+      --violet: #7c3aed;
+    }
+    html, body { height: 100%; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+      display: flex;
+      overflow: hidden;
+    }
+
+    /* Sidebar (clientes) — estilo CRM */
+    .sidebar {
+      width: 240px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      height: 100vh;
+    }
+    .sidebar-header {
+      padding: 16px 16px 14px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .sidebar-header img { width: 28px; height: 28px; border-radius: 6px; }
+    .sidebar-header .brand {
+      font-size: 15px; font-weight: 700; color: var(--text); letter-spacing: -.01em;
+    }
+    .sidebar-header .brand small { display: block; font-size: 11px; font-weight: 500; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; }
+    .sidebar-section {
+      padding: 12px 16px 6px;
+      font-size: 11px; font-weight: 600; color: var(--muted-2);
+      text-transform: uppercase; letter-spacing: .06em;
+    }
+    .sidebar-list { padding: 0 8px 16px; overflow-y: auto; flex: 1; }
+    .client-btn {
+      width: 100%; text-align: left; background: none; border: 0; cursor: pointer;
+      padding: 9px 10px; border-radius: 8px; font-size: 13px; color: var(--text-2);
+      display: flex; flex-direction: column; gap: 2px;
+      transition: background .12s, color .12s;
+    }
+    .client-btn:hover { background: #f3f4f6; color: var(--text); }
+    .client-btn.active { background: var(--primary-50); color: var(--primary-700); }
+    .client-btn .name { font-weight: 600; }
+    .client-btn .url { font-size: 11px; color: var(--muted-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .client-btn.active .url { color: var(--primary); }
+
+    /* Layout principal */
+    .main { flex: 1; display: flex; flex-direction: column; min-width: 0; height: 100vh; }
+    .topbar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 24px;
+      display: flex; align-items: center; gap: 16px; flex-shrink: 0;
+    }
+    .topbar h1 { font-size: 17px; font-weight: 600; color: var(--text); letter-spacing: -.01em; }
+    .topbar .subtitle { font-size: 13px; color: var(--muted); }
+    .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+    .status-pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 12px; color: var(--muted); padding: 4px 10px;
+      background: #f3f4f6; border-radius: 999px;
+    }
+    .status-pill .dot {
+      width: 7px; height: 7px; border-radius: 50%; background: var(--success);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
+
+    .content { flex: 1; display: flex; min-height: 0; }
+
+    /* Coluna central (leads/execuções) */
+    .list-col {
+      width: 320px; background: var(--surface); border-right: 1px solid var(--border);
+      display: flex; flex-direction: column; flex-shrink: 0;
+    }
+    .tab-bar { display: flex; padding: 0 16px; gap: 4px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+    .tab {
+      padding: 12px 14px; font-size: 13px; font-weight: 500; cursor: pointer;
+      color: var(--muted); border-bottom: 2px solid transparent;
+      transition: color .12s, border-color .12s;
+    }
+    .tab:hover { color: var(--text); }
+    .tab.active { color: var(--primary-700); border-bottom-color: var(--primary); }
+    .tab .count {
+      display: inline-block; margin-left: 6px;
+      font-size: 11px; padding: 1px 7px; border-radius: 999px;
+      background: #f3f4f6; color: var(--muted);
+    }
+    .tab.active .count { background: var(--primary-100); color: var(--primary-700); }
+    .search-wrap { padding: 12px 16px; border-bottom: 1px solid var(--border); }
+    .search-input {
+      width: 100%; border: 1px solid var(--border); border-radius: 8px;
+      padding: 8px 12px; font-size: 13px; outline: none; color: var(--text);
+      background: #fafafa;
+      transition: border-color .12s, background .12s;
+    }
+    .search-input:focus { border-color: var(--primary); background: var(--surface); }
+    .scroll-list { overflow-y: auto; flex: 1; padding: 8px; }
+    .list-item {
+      padding: 10px 12px; border-radius: 8px; cursor: pointer;
+      transition: background .1s;
+      border: 1px solid transparent;
+    }
+    .list-item:hover { background: #f9fafb; }
+    .list-item.active { background: var(--primary-50); border-color: var(--primary-100); }
+    .list-item + .list-item { margin-top: 2px; }
+    .item-title { font-size: 14px; font-weight: 600; color: var(--text); }
+    .item-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .item-meta { display: flex; gap: 6px; margin-top: 6px; align-items: center; flex-wrap: wrap; }
+    .badge {
+      font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 999px;
+      letter-spacing: .02em;
+    }
+    .badge-nicho { background: #eef2ff; color: #4338ca; }
     .badge-followup { background: #fef3c7; color: #92400e; }
-    .badge-agendado { background: #d1fae5; color: #065f46; }
-    .badge-msgs { background: #f3f4f6; color: #6b7280; }
-    .panel-chat { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-    .chat-header { padding: 14px 20px; border-bottom: 1px solid #e5e7eb; background: white; flex-shrink: 0; }
-    .chat-header .lead-title { font-size: 16px; font-weight: 600; color: #111; }
-    .chat-header .lead-details { font-size: 13px; color: #6b7280; margin-top: 2px; }
-    .resumo-box { margin-top: 8px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; padding: 8px 12px; font-size: 12px; color: #374151; }
-    .messages { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 10px; }
-    .msg { max-width: 70%; padding: 10px 14px; border-radius: 12px; font-size: 14px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
-    .msg.human { background: white; border: 1px solid #e5e7eb; align-self: flex-start; color: #111; }
-    .msg.ai { background: #4f46e5; color: white; align-self: flex-end; }
-    .msg-label { font-size: 11px; color: #9ca3af; margin-bottom: 2px; }
-    .msg-label.right { text-align: right; }
-    .msg-wrapper { display: flex; flex-direction: column; }
-    .msg-wrapper.right { align-items: flex-end; }
-    .log-item { padding: 10px 14px; cursor: pointer; border-bottom: 1px solid #f3f4f6; margin-bottom: 4px; transition: background .1s; }
-    .log-item:hover { background: #f9fafb; }
-    .log-item.active { background: #ede9fe; }
-    .log-item-phone { font-size: 13px; font-weight: 600; color: #111; }
-    .log-item-time { font-size: 11px; color: #9ca3af; margin-top: 3px; }
-    .log-detail { flex: 1; overflow-y: auto; padding: 20px; font-family: monospace; font-size: 13px; line-height: 2; color: #374151; white-space: pre-wrap; word-break: break-word; background: #fafafa; }
-    .log-detail-header { padding: 14px 20px; border-bottom: 1px solid #e5e7eb; background: white; flex-shrink: 0; }
-    .log-detail-title { font-size: 15px; font-weight: 600; color: #111; }
-    .log-detail-sub { font-size: 12px; color: #6b7280; margin-top: 2px; }
-    .log-line-token { color: #7c3aed; font-weight: 700; }
-    .log-line-tool { color: #0369a1; font-weight: 700; }
-    .log-line-crm { color: #065f46; font-weight: 700; }
-    .log-line-auto { color: #92400e; font-weight: 700; }
-    .log-line-err { color: #991b1b; font-weight: 700; }
-    .log-line-followup { color: #1d4ed8; font-weight: 700; }
-    .log-search { padding: 8px 10px; border-bottom: 1px solid #e5e7eb; flex-shrink: 0; }
-    .log-search input { width: 100%; border: 1px solid #e5e7eb; border-radius: 6px; padding: 6px 10px; font-size: 13px; outline: none; }
-    .log-search input:focus { border-color: #4f46e5; }
-    .empty { flex: 1; display: flex; align-items: center; justify-content: center; color: #9ca3af; font-size: 14px; }
-    .loading { color: #9ca3af; font-size: 13px; padding: 20px; text-align: center; }
-    .refresh-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #22c55e; margin-left: 6px; vertical-align: middle; animation: pulse 2s infinite; }
-    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+    .badge-agendado { background: #dcfce7; color: #166534; }
+    .badge-msgs { background: #f3f4f6; color: var(--muted); }
+
+    .empty {
+      flex: 1; display: flex; align-items: center; justify-content: center;
+      color: var(--muted-2); font-size: 13px; padding: 24px; text-align: center;
+    }
+    .loading { color: var(--muted); font-size: 13px; padding: 16px; text-align: center; }
+
+    /* Painel de detalhe (chat / log) */
+    .detail-col { flex: 1; display: flex; flex-direction: column; min-width: 0; background: var(--bg); }
+    .detail-header {
+      padding: 18px 24px; background: var(--surface); border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .detail-title { font-size: 17px; font-weight: 600; color: var(--text); }
+    .detail-sub { font-size: 13px; color: var(--muted); margin-top: 3px; }
+    .resumo-box {
+      margin-top: 12px; background: #f9fafb; border: 1px solid var(--border);
+      border-left: 3px solid var(--primary);
+      border-radius: 8px; padding: 10px 14px; font-size: 13px; color: var(--text-2);
+      line-height: 1.5;
+    }
+    .resumo-box strong { color: var(--text); margin-right: 4px; }
+
+    /* Mensagens (estilo chat) */
+    .messages {
+      flex: 1; overflow-y: auto; padding: 24px;
+      display: flex; flex-direction: column; gap: 14px;
+    }
+    .msg-wrapper { display: flex; flex-direction: column; max-width: 75%; }
+    .msg-wrapper.right { align-self: flex-end; align-items: flex-end; }
+    .msg-label { font-size: 11px; color: var(--muted-2); margin-bottom: 4px; padding: 0 4px; font-weight: 500; }
+    .msg {
+      padding: 10px 14px; border-radius: 14px; font-size: 14px;
+      line-height: 1.55; white-space: pre-wrap; word-break: break-word;
+      box-shadow: 0 1px 2px rgba(0,0,0,.04);
+    }
+    .msg.human { background: var(--surface); border: 1px solid var(--border); color: var(--text); border-bottom-left-radius: 4px; }
+    .msg.ai { background: var(--primary); color: #fff; border-bottom-right-radius: 4px; }
+
+    /* Visão de log (gerencial-dev) */
+    .log-view { flex: 1; overflow-y: auto; padding: 18px 24px; }
+    .log-summary {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+      padding: 14px 18px; margin-bottom: 16px;
+      display: flex; flex-wrap: wrap; gap: 18px;
+    }
+    .log-stat { display: flex; flex-direction: column; gap: 2px; }
+    .log-stat .label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+    .log-stat .value { font-size: 18px; font-weight: 700; color: var(--text); }
+    .log-stat.err .value { color: var(--danger); }
+    .log-stat.tokens .value { color: var(--violet); }
+    .log-stat.tools .value { color: var(--info); }
+
+    .log-events {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+      overflow: hidden;
+    }
+    .log-event {
+      display: grid;
+      grid-template-columns: 86px 110px 1fr;
+      gap: 14px;
+      padding: 10px 16px;
+      font-size: 13px;
+      line-height: 1.55;
+      border-bottom: 1px solid var(--border-soft);
+      align-items: start;
+    }
+    .log-event:last-child { border-bottom: 0; }
+    .log-event:hover { background: #fafbfc; }
+    .log-time { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 12px; color: var(--muted-2); }
+    .log-tag {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 6px;
+      letter-spacing: .02em; text-transform: uppercase; white-space: nowrap;
+      width: fit-content;
+    }
+    .log-tag::before {
+      content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor;
+    }
+    .tag-token { background: #f3e8ff; color: var(--violet); }
+    .tag-tool  { background: #e0f2fe; color: var(--info); }
+    .tag-crm   { background: #dcfce7; color: #15803d; }
+    .tag-auto  { background: #fef3c7; color: var(--warning); }
+    .tag-followup { background: #dbeafe; color: var(--primary-700); }
+    .tag-err   { background: #fee2e2; color: var(--danger); }
+    .tag-skip  { background: #f3f4f6; color: var(--muted); }
+    .tag-info  { background: #f3f4f6; color: var(--text-2); }
+    .log-msg { color: var(--text-2); word-break: break-word; }
+    .log-msg.err { color: var(--danger); font-weight: 500; }
+    .log-msg.skip { color: var(--muted); font-style: italic; }
+    .log-msg code, .log-msg .mono {
+      font-family: "SF Mono", Menlo, Consolas, monospace;
+      font-size: 12px; background: #f3f4f6; padding: 1px 6px; border-radius: 4px; color: var(--text);
+    }
   </style>
 </head>
 <body>
-<header><h1>Logs de Conversa</h1></header>
-<div class="layout">
-  <div class="panel-clients">
-    <div class="panel-title">Clientes</div>
-    <div id="clientList"><div style="padding:12px 14px;font-size:12px;color:#a5b4fc;">Carregando...</div></div>
+
+<aside class="sidebar">
+  <div class="sidebar-header">
+    <img src="./favicon-sai.png" alt="SAI">
+    <div class="brand">SAI Logs<small>Painel de execucoes</small></div>
   </div>
-  <div class="panel-leads" id="panelLeft">
-    <div class="tab-bar">
-      <div class="tab active" id="tabLeads" onclick="switchTab('leads')">Leads</div>
-      <div class="tab" id="tabLogs" onclick="switchTab('logs')">Execucoes</div>
+  <div class="sidebar-section">Clientes</div>
+  <div class="sidebar-list" id="clientList">
+    <div class="loading">Carregando...</div>
+  </div>
+</aside>
+
+<div class="main">
+  <div class="topbar">
+    <div>
+      <h1 id="topTitle">Selecione um cliente</h1>
+      <div class="subtitle" id="topSubtitle">Conversas e execucoes do bot em tempo real</div>
     </div>
-    <!-- LEADS -->
-    <div id="leadsView" style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
-      <div class="panel-title" style="border-top:none;">Leads <span id="leadsCount"></span></div>
-      <div class="search-box"><input type="text" id="searchInput" placeholder="Buscar nome ou numero..." oninput="filterLeads()"></div>
-      <div class="leads-list" id="leadsList"><div class="empty">Selecione um cliente</div></div>
-    </div>
-    <!-- LOGS LIST -->
-    <div id="logsView" style="display:none;flex-direction:column;flex:1;overflow:hidden;">
-      <div class="panel-title" style="border-top:none;">Execucoes <span id="logsCount"></span><span id="refreshDot" style="display:none" class="refresh-dot"></span></div>
-      <div class="log-search"><input type="text" id="logSearchInput" placeholder="Filtrar por numero..." oninput="filterLogBlocks()"></div>
-      <div class="leads-list" id="logBlockList"><div class="empty">Selecione um cliente</div></div>
+    <div class="topbar-right">
+      <span class="status-pill" id="statusPill" style="display:none"><span class="dot"></span><span id="statusText">ao vivo</span></span>
     </div>
   </div>
-  <div class="panel-chat" id="panelChat"><div class="empty">Selecione um lead</div></div>
+
+  <div class="content">
+    <div class="list-col">
+      <div class="tab-bar">
+        <div class="tab active" id="tabLeads" onclick="switchTab('leads')">Leads <span class="count" id="leadsCount">0</span></div>
+        <div class="tab" id="tabLogs" onclick="switchTab('logs')">Execucoes <span class="count" id="logsCount">0</span></div>
+      </div>
+
+      <div id="leadsView" style="display:flex;flex-direction:column;flex:1;min-height:0;">
+        <div class="search-wrap">
+          <input class="search-input" id="searchInput" placeholder="Buscar nome, numero ou nicho..." oninput="filterLeads()">
+        </div>
+        <div class="scroll-list" id="leadsList"><div class="empty">Selecione um cliente</div></div>
+      </div>
+
+      <div id="logsView" style="display:none;flex-direction:column;flex:1;min-height:0;">
+        <div class="search-wrap">
+          <input class="search-input" id="logSearchInput" placeholder="Filtrar por numero ou conteudo..." oninput="filterLogBlocks()">
+        </div>
+        <div class="scroll-list" id="logBlockList"><div class="empty">Selecione um cliente</div></div>
+      </div>
+    </div>
+
+    <div class="detail-col" id="detailCol">
+      <div class="empty">Escolha um lead ou execucao para visualizar</div>
+    </div>
+  </div>
 </div>
+
 <script>
   let clients = [];
   let allLeads = [];
@@ -115,26 +308,50 @@
   let autoRefreshTimer = null;
   let lastLogTs = null;
 
-  function esc(s) { return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+  function esc(s) {
+    return String(s == null ? "" : s)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+  }
+
+  // Remove tags HTML que vazam dos logs do backend (ex.: <span style="color:#3498db">)
+  function stripHtml(s) {
+    return String(s == null ? "" : s)
+      .replace(/<\/?[a-z][^>]*>/gi, "")
+      .replace(/&nbsp;/g, " ")
+      .replace(/&amp;/g, "&")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'");
+  }
 
   function switchTab(tab) {
     currentTab = tab;
-    document.getElementById("tabLeads").className = "tab" + (tab==="leads"?" active":"");
-    document.getElementById("tabLogs").className = "tab" + (tab==="logs"?" active":"");
-    document.getElementById("leadsView").style.display = tab==="leads"?"flex":"none";
-    document.getElementById("logsView").style.display = tab==="logs"?"flex":"none";
-    if (tab==="logs") {
-      document.getElementById("refreshDot").style.display = "";
-      document.getElementById("panelChat").innerHTML = '<div class="empty">Selecione uma execucao</div>';
+    document.getElementById("tabLeads").className = "tab" + (tab === "leads" ? " active" : "");
+    document.getElementById("tabLogs").className = "tab" + (tab === "logs" ? " active" : "");
+    document.getElementById("leadsView").style.display = tab === "leads" ? "flex" : "none";
+    document.getElementById("logsView").style.display = tab === "logs" ? "flex" : "none";
+
+    if (tab === "logs") {
+      document.getElementById("statusPill").style.display = "";
+      document.getElementById("statusText").textContent = "atualizando a cada 5s";
+      setDetailEmpty("Selecione uma execucao para inspecionar");
       if (selectedClient !== null) loadLogs();
-      if (!autoRefreshTimer) autoRefreshTimer = setInterval(function() {
-        if (selectedClient !== null) loadLogs();
-      }, 5000);
+      if (!autoRefreshTimer) {
+        autoRefreshTimer = setInterval(function () {
+          if (selectedClient !== null) loadLogs();
+        }, 5000);
+      }
     } else {
-      document.getElementById("refreshDot").style.display = "none";
-      clearInterval(autoRefreshTimer); autoRefreshTimer = null;
-      document.getElementById("panelChat").innerHTML = '<div class="empty">Selecione um lead</div>';
+      document.getElementById("statusPill").style.display = "none";
+      if (autoRefreshTimer) { clearInterval(autoRefreshTimer); autoRefreshTimer = null; }
+      setDetailEmpty("Escolha um lead para ver a conversa");
     }
+  }
+
+  function setDetailEmpty(text) {
+    document.getElementById("detailCol").innerHTML = '<div class="empty">' + esc(text) + '</div>';
   }
 
   async function loadClients() {
@@ -144,29 +361,35 @@
       clients = await res.json();
       renderClients();
       if (clients.length) selectClient(0);
-    } catch(e) {
+    } catch (e) {
       document.getElementById("clientList").innerHTML =
-        '<div style="padding:12px 14px;font-size:12px;color:#f87171;">Erro: ' + esc(e.message) + "</div>";
+        '<div class="loading" style="color:var(--danger)">Erro: ' + esc(e.message) + '</div>';
     }
   }
 
   function renderClients() {
     const el = document.getElementById("clientList");
-    el.innerHTML = clients.map((c,i) =>
-      '<div class="client-item' + (selectedClient===i?" active":"") + '" onclick="selectClient(' + i + ')">'  +
-      '<div class="client-name">' + esc(c.name) + "</div>" +
-      '<div class="client-url">' + esc(c.url) + "</div></div>"
+    el.innerHTML = clients.map((c, i) =>
+      '<button class="client-btn' + (selectedClient === i ? " active" : "") + '" onclick="selectClient(' + i + ')">' +
+        '<span class="name">' + esc(c.name) + '</span>' +
+        '<span class="url">' + esc((c.url || "").replace(/^https?:\/\//, "")) + '</span>' +
+      '</button>'
     ).join("");
   }
 
   async function selectClient(i) {
-    selectedClient = i; selectedPhone = null; allLogBlocks = []; lastLogTs = null;
+    selectedClient = i;
+    selectedPhone = null;
+    allLogBlocks = [];
+    lastLogTs = null;
     renderClients();
-    document.getElementById("panelChat").innerHTML = '<div class="empty">Selecione um lead</div>';
+    document.getElementById("topTitle").textContent = clients[i].name;
+    document.getElementById("topSubtitle").textContent = (clients[i].url || "").replace(/^https?:\/\//, "");
+    setDetailEmpty(currentTab === "logs" ? "Selecione uma execucao para inspecionar" : "Escolha um lead para ver a conversa");
     document.getElementById("leadsList").innerHTML = '<div class="loading">Carregando leads...</div>';
-    document.getElementById("logBlockList").innerHTML = '<div class="loading">Carregando...</div>';
-    document.getElementById("leadsCount").textContent = "";
-    document.getElementById("logsCount").textContent = "";
+    document.getElementById("logBlockList").innerHTML = '<div class="loading">Carregando execucoes...</div>';
+    document.getElementById("leadsCount").textContent = "0";
+    document.getElementById("logsCount").textContent = "0";
     document.getElementById("searchInput").value = "";
     document.getElementById("logSearchInput").value = "";
     try {
@@ -174,15 +397,15 @@
       if (!res.ok) throw new Error("HTTP " + res.status);
       allLeads = await res.json();
       renderLeads(allLeads);
-    } catch(e) {
-      document.getElementById("leadsList").innerHTML = '<div class="loading" style="color:#ef4444">Erro: ' + esc(e.message) + "</div>";
+    } catch (e) {
+      document.getElementById("leadsList").innerHTML = '<div class="loading" style="color:var(--danger)">Erro: ' + esc(e.message) + '</div>';
     }
     if (currentTab === "logs") loadLogs();
   }
 
   async function loadLogs() {
     const isFirst = !allLogBlocks.length;
-    if (isFirst) document.getElementById("logBlockList").innerHTML = '<div class="loading">Carregando logs...</div>';
+    if (isFirst) document.getElementById("logBlockList").innerHTML = '<div class="loading">Carregando execucoes...</div>';
     try {
       const res = await fetch(clients[selectedClient].url + "/logs/events?limit=100");
       if (!res.ok) throw new Error("HTTP " + res.status);
@@ -191,49 +414,93 @@
       if (newestTs !== lastLogTs || isFirst) {
         lastLogTs = newestTs;
         allLogBlocks = data;
-        const q = document.getElementById("logSearchInput").value.trim();
-        const filtered = !q ? allLogBlocks : allLogBlocks.filter(function(b) {
-          return (b.phone||"").includes(q) || (b.lines||[]).some(function(l) { return l.toLowerCase().includes(q.toLowerCase()); });
-        });
-        renderLogBlocks(filtered);
+        applyLogFilter();
       }
-      const now = new Date().toLocaleTimeString("pt-BR", {hour:"2-digit",minute:"2-digit",second:"2-digit"});
-      document.getElementById("logsCount").textContent = allLogBlocks.length + " \xb7 " + now;
-    } catch(e) {
-      document.getElementById("logBlockList").innerHTML = '<div class="loading" style="color:#ef4444">Erro: ' + esc(e.message) + "</div>";
+      const now = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+      document.getElementById("statusText").textContent = "atualizado " + now;
+      document.getElementById("logsCount").textContent = allLogBlocks.length;
+    } catch (e) {
+      document.getElementById("logBlockList").innerHTML = '<div class="loading" style="color:var(--danger)">Erro: ' + esc(e.message) + '</div>';
     }
   }
 
-  function lineClass(line) {
-    if (line.startsWith("[TOKENS]")) return "log-line-token";
-    if (line.startsWith("[TOOL")) return "log-line-tool";
-    if (line.startsWith("[CRM]")) return "log-line-crm";
-    if (line.startsWith("[AUTO]")) return "log-line-auto";
-    if (line.startsWith("[FOLLOWUP]")) return "log-line-followup";
-    if (line.toLowerCase().includes("erro") || line.toLowerCase().includes("error") || line.toLowerCase().includes("falh")) return "log-line-err";
-    return "";
+  function applyLogFilter() {
+    const q = document.getElementById("logSearchInput").value.trim().toLowerCase();
+    const filtered = !q ? allLogBlocks : allLogBlocks.filter(function (b) {
+      if ((b.phone || "").toLowerCase().includes(q)) return true;
+      return (b.lines || []).some(function (l) { return stripHtml(l).toLowerCase().includes(q); });
+    });
+    renderLogBlocks(filtered);
   }
 
   function fmtTime(ts) {
     const d = new Date(ts * 1000);
-    return d.toLocaleDateString("pt-BR", {timeZone:"America/Sao_Paulo"}) + " " +
-           d.toLocaleTimeString("pt-BR", {hour:"2-digit",minute:"2-digit",second:"2-digit",timeZone:"America/Sao_Paulo"});
+    return d.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" }) + " " +
+      d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit", timeZone: "America/Sao_Paulo" });
+    }
+
+  function fmtTimeShort(ts) {
+    return new Date(ts * 1000).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit", timeZone: "America/Sao_Paulo" });
+  }
+
+  // Heuristica: classifica linha do log em categoria com tag visual e tom (cor)
+  function classifyLine(raw) {
+    const line = stripHtml(raw).trim();
+    const lower = line.toLowerCase();
+    // Tenta extrair prefixo [TAG]
+    const m = line.match(/^\s*\[([A-Z_\-]+)\]\s*(.*)$/);
+    if (m) {
+      const tag = m[1].toUpperCase();
+      const body = m[2];
+      if (tag === "TOKENS") return { tag: "TOKENS", cls: "tag-token", msgCls: "", body };
+      if (tag.startsWith("TOOL")) return { tag: tag, cls: "tag-tool", msgCls: "", body };
+      if (tag === "CRM") return { tag: "CRM", cls: "tag-crm", msgCls: "", body };
+      if (tag === "AUTO") return { tag: "AUTO", cls: "tag-auto", msgCls: "", body };
+      if (tag === "FOLLOWUP" || tag === "FOLLOW_UP") return { tag: "FOLLOWUP", cls: "tag-followup", msgCls: "", body };
+      if (tag === "ERR" || tag === "ERROR" || tag === "ERRO") return { tag: "ERRO", cls: "tag-err", msgCls: "err", body };
+      if (tag === "SKIP" || tag === "PULOU" || tag === "IGNORADO") return { tag: tag, cls: "tag-skip", msgCls: "skip", body };
+      return { tag, cls: "tag-info", msgCls: "", body };
+    }
+    if (lower.includes("erro") || lower.includes("error") || lower.includes("falh") || lower.includes("exception") || lower.includes("traceback")) {
+      return { tag: "ERRO", cls: "tag-err", msgCls: "err", body: line };
+    }
+    if (lower.startsWith("nao ") || lower.includes("ignorado") || lower.includes("pulou") || lower.includes("skipped")) {
+      return { tag: "SKIP", cls: "tag-skip", msgCls: "skip", body: line };
+    }
+    return { tag: "INFO", cls: "tag-info", msgCls: "", body: line };
+  }
+
+  function summarizeBlock(b) {
+    const counts = { TOKENS: 0, TOOL: 0, CRM: 0, AUTO: 0, FOLLOWUP: 0, ERRO: 0, SKIP: 0, INFO: 0 };
+    (b.lines || []).forEach(function (line) {
+      const info = classifyLine(line);
+      const key = info.tag.startsWith("TOOL") ? "TOOL" : (counts.hasOwnProperty(info.tag) ? info.tag : "INFO");
+      counts[key] = (counts[key] || 0) + 1;
+    });
+    return counts;
   }
 
   function renderLogBlocks(blocks) {
     filteredLogBlocks = blocks;
     if (selectedLogTs !== null) {
-      const newIdx = blocks.findIndex(function(b) { return b.ts === selectedLogTs; });
+      const newIdx = blocks.findIndex(function (b) { return b.ts === selectedLogTs; });
       selectedLogIdx = newIdx >= 0 ? newIdx : null;
       if (newIdx < 0) selectedLogTs = null;
     }
     const el = document.getElementById("logBlockList");
-    if (!blocks.length) { el.innerHTML = '<div class="empty">Nenhum log</div>'; return; }
-    el.innerHTML = blocks.map(function(b, i) {
-      return '<div class="log-item' + (selectedLogIdx===i?" active":"") + '" onclick="selectLogBlock(' + i + ')">' +
-        '<div class="log-item-phone">' + esc(b.phone||"?") + "</div>" +
-        '<div class="log-item-time">' + fmtTime(b.ts) + "</div>" +
-      "</div>";
+    if (!blocks.length) { el.innerHTML = '<div class="empty">Nenhuma execucao</div>'; return; }
+    el.innerHTML = blocks.map(function (b, i) {
+      const c = summarizeBlock(b);
+      const chips = [];
+      if (c.ERRO) chips.push('<span class="badge" style="background:#fee2e2;color:#b91c1c">' + c.ERRO + ' erro' + (c.ERRO > 1 ? 's' : '') + '</span>');
+      if (c.TOOL) chips.push('<span class="badge" style="background:#e0f2fe;color:#0369a1">' + c.TOOL + ' tool</span>');
+      if (c.CRM) chips.push('<span class="badge badge-agendado">' + c.CRM + ' CRM</span>');
+      if (c.FOLLOWUP) chips.push('<span class="badge badge-followup">follow-up</span>');
+      return '<div class="list-item' + (selectedLogIdx === i ? " active" : "") + '" onclick="selectLogBlock(' + i + ')">' +
+        '<div class="item-title">' + esc(b.phone || "?") + '</div>' +
+        '<div class="item-sub">' + esc(fmtTime(b.ts)) + '</div>' +
+        (chips.length ? '<div class="item-meta">' + chips.join("") + '</div>' : '') +
+      '</div>';
     }).join("");
   }
 
@@ -242,52 +509,75 @@
     selectedLogTs = filteredLogBlocks[i].ts;
     renderLogBlocks(filteredLogBlocks);
     const b = filteredLogBlocks[i];
-    const chat = document.getElementById("panelChat");
-    const linesHtml = (b.lines||[]).map(function(line) {
-      const cls = lineClass(line);
-      return '<div' + (cls?' class="'+cls+'"':'') + '>' + line + "</div>";
+    const counts = summarizeBlock(b);
+    const total = (b.lines || []).length;
+
+    const eventsHtml = (b.lines || []).map(function (raw) {
+      const info = classifyLine(raw);
+      const tsMatch = stripHtml(raw).match(/^(\d{2}:\d{2}:\d{2}(?:\.\d+)?)/);
+      const time = tsMatch ? tsMatch[1] : fmtTimeShort(b.ts);
+      let body = info.body;
+      if (tsMatch && body.startsWith(tsMatch[1])) body = body.slice(tsMatch[1].length).trim();
+      return '<div class="log-event">' +
+        '<div class="log-time">' + esc(time) + '</div>' +
+        '<div><span class="log-tag ' + info.cls + '">' + esc(info.tag) + '</span></div>' +
+        '<div class="log-msg ' + info.msgCls + '">' + esc(body) + '</div>' +
+      '</div>';
     }).join("");
-    chat.innerHTML =
-      '<div class="log-detail-header">' +
-        '<div class="log-detail-title">' + esc(b.phone||"?") + "</div>" +
-        '<div class="log-detail-sub">' + fmtTime(b.ts) + "</div>" +
-      "</div>" +
-      '<div class="log-detail">' + linesHtml + "</div>";
+
+    const summaryHtml =
+      '<div class="log-summary">' +
+        '<div class="log-stat"><span class="label">Eventos</span><span class="value">' + total + '</span></div>' +
+        (counts.ERRO ? '<div class="log-stat err"><span class="label">Erros</span><span class="value">' + counts.ERRO + '</span></div>' : '') +
+        (counts.TOOL ? '<div class="log-stat tools"><span class="label">Tool calls</span><span class="value">' + counts.TOOL + '</span></div>' : '') +
+        (counts.TOKENS ? '<div class="log-stat tokens"><span class="label">Tokens</span><span class="value">' + counts.TOKENS + '</span></div>' : '') +
+        (counts.CRM ? '<div class="log-stat"><span class="label">CRM</span><span class="value">' + counts.CRM + '</span></div>' : '') +
+        (counts.SKIP ? '<div class="log-stat"><span class="label">Ignorados</span><span class="value">' + counts.SKIP + '</span></div>' : '') +
+      '</div>';
+
+    document.getElementById("detailCol").innerHTML =
+      '<div class="detail-header">' +
+        '<div class="detail-title">' + esc(b.phone || "?") + '</div>' +
+        '<div class="detail-sub">' + esc(fmtTime(b.ts)) + ' &middot; ' + total + ' linhas registradas</div>' +
+      '</div>' +
+      '<div class="log-view">' +
+        summaryHtml +
+        '<div class="log-events">' + (eventsHtml || '<div class="empty">Sem eventos</div>') + '</div>' +
+      '</div>';
   }
 
   function filterLogBlocks() {
-    const q = document.getElementById("logSearchInput").value.trim();
-    const filtered = !q ? allLogBlocks : allLogBlocks.filter(function(b) {
-      return (b.phone||"").includes(q) || (b.lines||[]).some(function(l) { return l.toLowerCase().includes(q.toLowerCase()); });
-    });
     selectedLogIdx = null;
     selectedLogTs = null;
-    renderLogBlocks(filtered);
-    document.getElementById("panelChat").innerHTML = '<div class="empty">Selecione uma execucao</div>';
+    applyLogFilter();
+    setDetailEmpty("Selecione uma execucao para inspecionar");
   }
 
   function renderLeads(leads) {
     const el = document.getElementById("leadsList");
     document.getElementById("leadsCount").textContent = leads.length;
     if (!leads.length) { el.innerHTML = '<div class="empty">Nenhum lead</div>'; return; }
-    el.innerHTML = leads.map(function(l,idx) {
+    el.innerHTML = leads.map(function (l, idx) {
       const name = l.nome || l.phone;
       const badges = [];
-      if (l.nicho) badges.push('<span class="badge badge-nicho">' + esc(l.nicho) + "</span>");
+      if (l.nicho) badges.push('<span class="badge badge-nicho">' + esc(l.nicho) + '</span>');
       if (l.event_id) badges.push('<span class="badge badge-agendado">Agendado</span>');
       else if (l.has_followup) badges.push('<span class="badge badge-followup">Follow-up</span>');
-      badges.push('<span class="badge badge-msgs">' + l.msg_count + " msgs</span>");
-      return '<div class="lead-item' + (selectedPhone===l.phone?" active":"") + '" onclick="selectLead(' + idx + ')">'  +
-        '<div class="lead-name">' + esc(name) + "</div>" +
-        '<div class="lead-phone">' + esc(l.phone) + "</div>" +
-        '<div class="lead-meta">' + badges.join("") + "</div></div>";
+      badges.push('<span class="badge badge-msgs">' + esc(String(l.msg_count || 0)) + ' msgs</span>');
+      return '<div class="list-item' + (selectedPhone === l.phone ? " active" : "") + '" onclick="selectLead(' + idx + ')">' +
+        '<div class="item-title">' + esc(name) + '</div>' +
+        '<div class="item-sub">' + esc(l.phone) + '</div>' +
+        '<div class="item-meta">' + badges.join("") + '</div>' +
+      '</div>';
     }).join("");
   }
 
   function getFilteredLeads() {
     const q = document.getElementById("searchInput").value.toLowerCase();
-    return !q ? allLeads : allLeads.filter(function(l) {
-      return (l.nome||"").toLowerCase().includes(q) || l.phone.includes(q) || (l.nicho||"").toLowerCase().includes(q);
+    return !q ? allLeads : allLeads.filter(function (l) {
+      return (l.nome || "").toLowerCase().includes(q) ||
+             (l.phone || "").includes(q) ||
+             (l.nicho || "").toLowerCase().includes(q);
     });
   }
 
@@ -298,31 +588,33 @@
     const lead = filtered[idx];
     selectedPhone = lead.phone;
     renderLeads(filtered);
-    const chat = document.getElementById("panelChat");
     const name = lead.nome || lead.phone;
-    const tags = [lead.nicho, lead.event_id ? "Reuniao agendada" : (lead.has_followup ? "Follow-up ativo" : "")].filter(Boolean).join(" \xb7 ");
-    chat.innerHTML =
-      '<div class="chat-header">' +
-        '<div class="lead-title">' + esc(name) + "</div>" +
-        '<div class="lead-details">' + esc(lead.phone) + (tags?" \xb7 "+esc(tags):"") + "</div>" +
-        (lead.resumo ? '<div class="resumo-box"><strong>Resumo:</strong> ' + esc(lead.resumo) + "</div>" : "") +
-      "</div>" +
-      '<div class="messages" id="messages"><div class="loading">Carregando...</div></div>';
+    const tags = [lead.nicho, lead.event_id ? "Reuniao agendada" : (lead.has_followup ? "Follow-up ativo" : "")].filter(Boolean).join(" · ");
+    document.getElementById("detailCol").innerHTML =
+      '<div class="detail-header">' +
+        '<div class="detail-title">' + esc(name) + '</div>' +
+        '<div class="detail-sub">' + esc(lead.phone) + (tags ? ' &middot; ' + esc(tags) : '') + '</div>' +
+        (lead.resumo ? '<div class="resumo-box"><strong>Resumo:</strong>' + esc(lead.resumo) + '</div>' : '') +
+      '</div>' +
+      '<div class="messages" id="messages"><div class="loading">Carregando conversa...</div></div>';
     try {
       const res = await fetch(clients[selectedClient].url + "/logs/history/" + lead.phone);
       if (!res.ok) throw new Error("HTTP " + res.status);
       const msgs = await res.json();
       const container = document.getElementById("messages");
-      if (!msgs.length) { container.innerHTML = '<div class="loading">Sem mensagens</div>'; return; }
-      container.innerHTML = msgs.map(function(m) {
+      if (!msgs.length) { container.innerHTML = '<div class="empty">Sem mensagens</div>'; return; }
+      container.innerHTML = msgs.map(function (m) {
         const isAi = m.role === "ai";
-        return '<div class="msg-wrapper' + (isAi?" right":"") + '">' +
-          '<div class="msg-label' + (isAi?" right":"") + '">' + (isAi ? esc(clients[selectedClient].name) : esc(name)) + "</div>" +
-          '<div class="msg ' + (isAi?"ai":"human") + '">' + esc(m.content) + "</div></div>";
+        const label = isAi ? clients[selectedClient].name : name;
+        return '<div class="msg-wrapper' + (isAi ? " right" : "") + '">' +
+          '<div class="msg-label">' + esc(label) + '</div>' +
+          '<div class="msg ' + (isAi ? "ai" : "human") + '">' + esc(stripHtml(m.content)) + '</div>' +
+        '</div>';
       }).join("");
       container.scrollTop = container.scrollHeight;
-    } catch(e) {
-      document.getElementById("messages").innerHTML = '<div class="loading" style="color:#ef4444">Erro: ' + esc(e.message) + "</div>";
+    } catch (e) {
+      const c = document.getElementById("messages");
+      if (c) c.innerHTML = '<div class="loading" style="color:var(--danger)">Erro: ' + esc(e.message) + '</div>';
     }
   }
 
